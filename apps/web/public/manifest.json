@@ -1,0 +1,14 @@
+{
+  "name": "Meeti",
+  "short_name": "Meeti",
+  "description": "Record or upload a meeting and get a transcript, summary, decisions and action items automatically.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#006ce0",
+  "icons": [
+    { "src": "/favicon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
