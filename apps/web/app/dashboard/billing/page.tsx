@@ -164,7 +164,7 @@ export default function BillingPage() {
                 limit={summary.exports.limit}
               />
               <p className="text-xs text-muted-foreground">
-                Manual notes and template formatting are always free and unlimited — they don't use
+                Manual notes and template formatting are always free and unlimited — they don&apos;t use
                 the AI allowance above. AI features work only when the transcription service is
                 configured and has credit.
               </p>
