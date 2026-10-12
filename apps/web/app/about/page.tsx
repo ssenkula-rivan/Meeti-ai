@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { SITE } from '@/lib/site-config';
+import { Fill } from '@/components/legal';
 
 export const metadata: Metadata = {
   title: 'About',
@@ -37,11 +39,9 @@ export default function About() {
             spending time writing them up.
           </p>
           <p>
-            Meeti is operated by <strong>Cranictech</strong>, of Nasser Road, Printer&apos;s
-            Miracle Centre, Uganda (company registration number:{' '}
-            <mark className="bg-yellow-100 text-yellow-900 px-1 rounded">[SET: company registration number]</mark>).
-            For questions, contact{' '}
-            <mark className="bg-yellow-100 text-yellow-900 px-1 rounded">[SET: support email (not yet created/verified)]</mark>.
+            Meeti is operated by <strong>{SITE.legal.entityName}</strong>, of {SITE.legal.address}
+            {' '}(company registration number: <Fill value={SITE.legal.registrationNumber} />).
+            For questions, contact <Fill value={SITE.legal.supportEmail} />.
           </p>
           <p className="text-sm text-gray-500">
             See our <Link href="/privacy" className="underline">Privacy Policy</Link>,{' '}

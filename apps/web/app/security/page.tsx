@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { SITE } from '@/lib/site-config';
+import { Fill } from '@/components/legal';
 
 export const metadata: Metadata = {
   title: 'Security',
@@ -42,7 +44,7 @@ export default function Security() {
           </ul>
           <p>
             No system is perfectly secure. To report a security issue, email{' '}
-            <mark className="bg-yellow-100 text-yellow-900 px-1 rounded">[SET: security email (not yet created/verified)]</mark>.
+            <Fill value={SITE.legal.securityEmail} />.
           </p>
         </div>
       </main>

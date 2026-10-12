@@ -1,4 +1,6 @@
 import LegalLayout from '../../components/LegalLayout';
+import { Fill } from '@/components/legal';
+import { SITE } from '@/lib/site-config';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -7,12 +9,6 @@ export const metadata: Metadata = {
   alternates: { canonical: '/ai-policy' },
   openGraph: { title: 'Meeti - AI Policy', description: 'How Meeti uses AI, its limits, and your responsibilities.', url: '/ai-policy' },
 };
-
-const Fill = ({ children }: { children: React.ReactNode }) => (
-  <mark className="bg-yellow-100 text-yellow-900 px-1 rounded">
-    [SET: {children}]
-  </mark>
-);
 
 export default function AIPolicy() {
   return (
@@ -122,8 +118,8 @@ export default function AIPolicy() {
       <h2 className="text-xl font-semibold pt-4">9. Reporting AI problems</h2>
       <p>
         Report errors, harmful output or privacy concerns to{' '}
-        <Fill>support email (not yet created/verified)</Fill>. We aim to respond within{' '}
-        <Fill>response timeframe, e.g. 5 business days</Fill>.
+        <Fill value={SITE.legal.supportEmail} />. We aim to respond within{' '}
+        <Fill value={SITE.legal.responseTime} />.
       </p>
     </LegalLayout>
   );
