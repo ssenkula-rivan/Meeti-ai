@@ -9,12 +9,14 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "test": "turbo run test",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "turbo run lint"
   },
   "devDependencies": {
     "turbo": "^1.13.4",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.9"
   },
   "description": "",
   "main": "index.js",
