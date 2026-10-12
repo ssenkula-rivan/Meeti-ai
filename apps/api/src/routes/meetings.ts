@@ -33,6 +33,7 @@ const LINK_BASED_PLATFORMS = ['google-meet', 'zoom', 'microsoft-teams', 'webex']
 const createMeetingSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   meetingType: z.string().optional(),
+  sourceLanguage: z.string().trim().max(10).optional(),
   outputLanguage: z.string().optional(),
   platform: z.enum(['in-person', 'phone', 'whatsapp', 'telegram', 'other', ...LINK_BASED_PLATFORMS]).optional(),
   meetingLink: z.string().trim().url('Enter a valid meeting link').optional().or(z.literal('')),
@@ -58,6 +59,8 @@ router.post('/', async (req: AuthRequest, res, next) => {
     const meeting = await meetingRepo.create(req.userId!, {
       title: data.title,
       meeting_type: data.meetingType,
+      // 'auto' (or absent) means let the provider detect the spoken language.
+      source_language: data.sourceLanguage && data.sourceLanguage !== 'auto' ? data.sourceLanguage : undefined,
       output_language: data.outputLanguage,
       metadata: data.platform
         ? { platform: data.platform, meeting_link: data.meetingLink?.trim() || null }

@@ -71,8 +71,8 @@ export default function Home() {
               </div>
               <h3 className="mb-2 text-xl font-semibold">Record and Listen</h3>
               <p className="text-muted-foreground">
-                Capture meetings in English, Swahili and other major languages, with
-                automatic language detection.
+                Capture meetings in English with automatic language detection, plus
+                beta support for Swahili, Luganda and other languages.
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-card p-8 shadow-card">

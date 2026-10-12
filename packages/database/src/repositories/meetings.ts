@@ -6,12 +6,14 @@ export class MeetingRepository implements IMeetingRepository {
 
   async create(userId: string, data: Partial<Meeting>): Promise<Meeting> {
     const result = await this.db.queryOne<Meeting>(
-      `INSERT INTO meetings (user_id, title, meeting_type, output_language, recording_quality, content, agenda, objectives, meeting_date, status, metadata) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      `INSERT INTO meetings (user_id, title, meeting_type, source_language, output_language, recording_quality, content, agenda, objectives, meeting_date, status, metadata) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
       [
         userId,
         data.title,
         data.meeting_type || 'business',
+        // null means auto-detect at transcription time.
+        data.source_language ?? null,
         data.output_language || 'en',
         data.recording_quality || 'standard',
         data.content ?? null,

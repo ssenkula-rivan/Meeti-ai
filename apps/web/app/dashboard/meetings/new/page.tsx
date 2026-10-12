@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { meetingsApi } from '@/lib/api';
+import { SUPPORTED_LANGUAGES, AUTO_DETECT } from '@/lib/languages';
 
 type PlatformOption = {
   value: string;
@@ -27,6 +28,7 @@ export default function NewMeetingPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [meetingType, setMeetingType] = useState('business');
+  const [sourceLanguage, setSourceLanguage] = useState(AUTO_DETECT);
   const [outputLanguage, setOutputLanguage] = useState('en');
   const [platform, setPlatform] = useState('in-person');
   const [meetingLink, setMeetingLink] = useState('');
@@ -54,6 +56,7 @@ export default function NewMeetingPage() {
       const response = await meetingsApi.create({
         title: title.trim(),
         meetingType,
+        sourceLanguage,
         outputLanguage,
         platform,
         meetingLink: selectedPlatform.requiresLink ? meetingLink.trim() : undefined,
@@ -167,6 +170,28 @@ export default function NewMeetingPage() {
               <option value="personal">Personal Notes</option>
               <option value="research">Research</option>
             </select>
+          </div>
+
+          <div>
+            <label htmlFor="sourceLanguage" className="block text-sm font-medium text-gray-700 mb-2">
+              Recording Language
+            </label>
+            <select
+              id="sourceLanguage"
+              value={sourceLanguage}
+              onChange={(e) => setSourceLanguage(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={AUTO_DETECT}>Auto-detect</option>
+              {SUPPORTED_LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}{l.status === 'beta' ? ' (beta)' : ''}
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-gray-500">
+              Languages marked (beta) are improving and are not yet validated on real meeting audio.
+            </p>
           </div>
 
           <div>
