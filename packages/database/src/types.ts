@@ -35,6 +35,10 @@ export interface Meeting {
   detected_languages?: string[];
   source_language?: string;
   output_language: string;
+  // Recording consent (per-meeting). Enforced only when the feature flag is on.
+  consent_confirmed?: boolean;
+  consent_confirmed_at?: Date | null;
+  consent_version?: string | null;
   duration_seconds?: number;
   started_at?: Date;
   ended_at?: Date;

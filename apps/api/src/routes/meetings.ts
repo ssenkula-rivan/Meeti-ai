@@ -70,6 +70,27 @@ router.post('/', async (req: AuthRequest, res, next) => {
   }
 });
 
+// Record that the user confirmed the recording-consent notice for a meeting.
+// Always allowed (harmless when the flag is off); enforcement happens on upload.
+const CONSENT_VERSION = 'v1';
+router.post('/:id/consent', async (req: AuthRequest, res, next) => {
+  try {
+    const meeting = await meetingRepo.findById(req.params.id);
+    if (!meeting) throw new AppError(404, 'Meeting not found');
+    if (meeting.user_id !== req.userId) throw new AppError(403, 'Access denied');
+
+    await db.query(
+      `UPDATE meetings
+       SET consent_confirmed = true, consent_confirmed_at = NOW(), consent_version = $1
+       WHERE id = $2 AND user_id = $3`,
+      [CONSENT_VERSION, req.params.id, req.userId],
+    );
+    res.json({ ok: true, consentVersion: CONSENT_VERSION });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
     const meetings = await meetingRepo.findByUserId(req.userId!);
