@@ -1,4 +1,6 @@
 import LegalLayout from '../../components/LegalLayout';
+import { Fill } from '@/components/legal';
+import { SITE } from '@/lib/site-config';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -7,10 +9,6 @@ export const metadata: Metadata = {
   alternates: { canonical: '/privacy' },
   openGraph: { title: 'Meeti - Privacy Policy', description: 'How Meeti collects, uses and protects your personal data.', url: '/privacy' },
 };
-
-const Fill = ({ children }: { children: React.ReactNode }) => (
-  <mark className="bg-yellow-100 text-yellow-900 px-1 rounded">[SET: {children}]</mark>
-);
 
 export default function Privacy() {
   return (
@@ -30,10 +28,9 @@ export default function Privacy() {
 
       <h2 className="text-xl font-semibold pt-4">1. Who we are</h2>
       <p>
-        Meeti is operated by <strong>Cranictech</strong>, of Nasser Road, Printer&apos;s
-        Miracle Centre, Uganda. Company registration number:{' '}
-        <Fill>company registration number</Fill>. Data protection contact:{' '}
-        <Fill>privacy email (not yet created/verified)</Fill>.
+        Meeti is operated by <strong>{SITE.legal.entityName}</strong>, of {SITE.legal.address}.
+        Company registration number: <Fill value={SITE.legal.registrationNumber} />. Data
+        protection contact: <Fill value={SITE.legal.privacyEmail} />.
       </p>
 
       <h2 className="text-xl font-semibold pt-4">2. Data we collect</h2>
@@ -54,7 +51,7 @@ export default function Privacy() {
 
       <h2 className="text-xl font-semibold pt-4">4. Who we share your data with</h2>
       <ul className="list-disc pl-6 space-y-1">
-        <li><strong>OpenAI</strong> &mdash; to transcribe audio (Whisper) and generate summaries/translations (GPT&#8209;4). See our AI Policy.</li>
+        <li><strong>OpenAI</strong> &mdash; to transcribe audio and to generate summaries and translations. See our AI Policy.</li>
         <li><strong>Amazon Web Services (AWS)</strong> &mdash; our hosting provider. The application server, the PostgreSQL database and your audio recordings are stored on AWS infrastructure.</li>
         <li><strong>Google</strong> (Drive, Gmail, Calendar) and <strong>Slack</strong> &mdash; only if you connect them and choose to export content.</li>
         <li><strong>Payments:</strong> we do not currently process payments; paid checkout is not active, so no card or payment data is collected.</li>
@@ -67,7 +64,7 @@ export default function Privacy() {
         (region us-east-1), and AI requests are processed by OpenAI in the{' '}
         <strong>United States</strong>. If you are in Uganda or elsewhere, this means your
         data is transferred outside your country.{' '}
-        <Fill>confirm transfer safeguards with a lawyer (e.g. for UK GDPR / Uganda DPA)</Fill>.
+        <Fill value={SITE.legal.dataTransferSafeguards} />.
       </p>
 
       <h2 className="text-xl font-semibold pt-4">6. Retention</h2>
@@ -84,7 +81,7 @@ export default function Privacy() {
         objection, data portability, and withdrawal of consent. You can exercise most of
         these directly in the app (editing your profile, deleting meetings, deleting your
         account). For anything else, contact{' '}
-        <Fill>privacy email (not yet created/verified)</Fill>. You also have the right to
+        <Fill value={SITE.legal.privacyEmail} />. You also have the right to
         complain to a data protection authority &mdash; see section 10.
       </p>
 
@@ -92,10 +89,10 @@ export default function Privacy() {
       <ul className="list-disc pl-6 space-y-1">
         <li>All traffic between your device and our servers is encrypted in transit using HTTPS/TLS.</li>
         <li>Passwords are hashed with bcrypt and are never stored in plain text.</li>
-        <li>Access to the app uses short-lived signed tokens (JWT) rather than exposing your credentials.</li>
+        <li>Access to the app uses signed tokens (JWT) rather than exposing your credentials.</li>
         <li>
           <strong>Honest limitation:</strong> encryption of data at rest (on the storage
-          volume and database) is <Fill>not yet enabled &mdash; confirm or implement</Fill>,
+          volume and database) is <Fill value={SITE.legal.dataAtRestEncryption} />,
           and no method of transmission or storage is perfectly secure.
         </li>
       </ul>
@@ -103,7 +100,7 @@ export default function Privacy() {
       <h2 className="text-xl font-semibold pt-4">9. Children</h2>
       <p>
         Meeti is intended for adults. We propose a minimum age of{' '}
-        <Fill>18 (proposed, pending review)</Fill> and do not knowingly collect data from
+        <Fill value={SITE.legal.ageLimit} /> and do not knowingly collect data from
         children.
       </p>
 
@@ -113,7 +110,7 @@ export default function Privacy() {
         Uganda this is the <strong>Personal Data Protection Office</strong> (under the Data
         Protection and Privacy Act, 2019); for UK users, the{' '}
         <strong>Information Commissioner&apos;s Office (ICO)</strong>.{' '}
-        <Fill>confirm whether Cranictech must register as a data controller with the Uganda PDPO</Fill>.
+        <Fill value={SITE.legal.dataControllerRegistration} />.
       </p>
 
       <h2 className="text-xl font-semibold pt-4">11. Changes</h2>

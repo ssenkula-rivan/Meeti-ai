@@ -1,4 +1,6 @@
 import LegalLayout from '../../components/LegalLayout';
+import { Fill } from '@/components/legal';
+import { SITE } from '@/lib/site-config';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -7,12 +9,6 @@ export const metadata: Metadata = {
   alternates: { canonical: '/terms' },
   openGraph: { title: 'Meeti - Terms of Service', description: 'The terms that govern your use of Meeti.', url: '/terms' },
 };
-
-const Fill = ({ children }: { children: React.ReactNode }) => (
-  <mark className="bg-yellow-100 text-yellow-900 px-1 rounded">
-    [SET: {children}]
-  </mark>
-);
 
 export default function Terms() {
   return (
@@ -30,17 +26,16 @@ export default function Terms() {
 
       <h2 className="text-xl font-semibold pt-4">1. Who we are</h2>
       <p>
-        Meeti is operated by <strong>Cranictech</strong>, of Nasser Road, Printer&apos;s
-        Miracle Centre, Uganda. Company registration number:{' '}
-        <Fill>company registration number</Fill>. Contact:{' '}
-        <Fill>support email (not yet created/verified)</Fill>.
+        Meeti is operated by <strong>{SITE.legal.entityName}</strong>, of {SITE.legal.address}.
+        Company registration number: <Fill value={SITE.legal.registrationNumber} />. Contact:{' '}
+        <Fill value={SITE.legal.supportEmail} />.
       </p>
 
       <h2 className="text-xl font-semibold pt-4">2. Eligibility and accounts</h2>
       <ul className="list-disc pl-6 space-y-1">
-        <li>You must be at least <strong>18</strong> years old (proposed minimum, pending review and implementation) and able to form a binding contract.</li>
+        <li>You must be at least <strong><Fill value={SITE.legal.ageLimit} /></strong> years old and able to form a binding contract.</li>
         <li>Provide accurate information and keep your credentials secure; you are responsible for activity under your account.</li>
-        <li>Report unauthorised access to <Fill>support email (not yet created/verified)</Fill>.</li>
+        <li>Report unauthorised access to <Fill value={SITE.legal.supportEmail} />.</li>
         <li>If you use Meeti for an organisation, you confirm you are authorised to bind it.</li>
       </ul>
 
@@ -133,33 +128,28 @@ export default function Terms() {
       <p>
         To the extent permitted by law, we are not liable for indirect or consequential
         loss, lost profits, or loss arising from reliance on AI output. Our total
-        liability is limited to{' '}
-        <Fill>a cap to be confirmed with a lawyer (e.g. a fixed sum, or any amount you
-        have paid &mdash; noting the service is currently free)</Fill>.
+        liability is limited to <Fill value={SITE.legal.liabilityCap} />.
         Nothing limits liability that cannot be limited by law.
       </p>
 
       <h2 className="text-xl font-semibold pt-4">14. Governing law and disputes</h2>
       <p>
         These Terms are governed by the laws of <strong>Uganda</strong>, and the courts of
-        Uganda have jurisdiction over any dispute.{' '}
-        <Fill>This clause is proposed and subject to review by a qualified lawyer &mdash;
-        it has NOT been legally approved, and whether an arbitration clause is required or
-        permitted still needs to be confirmed.</Fill>
+        Uganda have jurisdiction over any dispute. <Fill value={SITE.legal.governingLaw} />
       </p>
 
       <h2 className="text-xl font-semibold pt-4">15. Changes to these Terms</h2>
       <p>
         We may update these Terms and will give notice of material changes by{' '}
-        <Fill>email (once a contact address is live) and/or in-app</Fill>. Continued use
+        <Fill value={SITE.legal.changeNoticeMethod} />. Continued use
         after the effective date means acceptance.
       </p>
 
       <h2 className="text-xl font-semibold pt-4">16. Contact</h2>
       <p>
-        Meeti is operated by Cranictech, Nasser Road, Printer&apos;s Miracle Centre,
-        Uganda. Company registration number: <Fill>company registration number</Fill>.
-        Contact: <Fill>support email (not yet created/verified)</Fill>.
+        Meeti is operated by {SITE.legal.entityName}, {SITE.legal.address}. Company
+        registration number: <Fill value={SITE.legal.registrationNumber} />. Contact:{' '}
+        <Fill value={SITE.legal.supportEmail} />.
       </p>
     </LegalLayout>
   );
