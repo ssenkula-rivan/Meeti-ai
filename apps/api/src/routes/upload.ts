@@ -16,6 +16,7 @@ import { config } from '../config';
 import { AppError } from '../middleware/error-handler';
 import { queueMeeting } from '../workers/process-meeting';
 import { getUsageService } from '../services/usage';
+import { recordingConsentRequired, consentMissing } from '../services/consent';
 import * as multer from 'multer';
 
 const router = Router();
@@ -113,6 +114,10 @@ async function handleDirectUpload(req: AuthRequest, res: any, next: any) {
       throw new AppError(403, 'Access denied');
     }
 
+    if (consentMissing(meeting, recordingConsentRequired())) {
+      throw new AppError(403, 'Recording consent is required before uploading audio');
+    }
+
     if (!req.file) {
       throw new AppError(400, 'No file uploaded');
     }
@@ -168,6 +173,10 @@ async function handleFullUpload(req: AuthRequest, res: any, next: any) {
     const meeting = await meetingStore.findById(meetingId);
     if (!meeting) throw new AppError(404, 'Meeting not found');
     if (meeting.user_id !== req.userId) throw new AppError(403, 'Access denied');
+
+    if (consentMissing(meeting, recordingConsentRequired())) {
+      throw new AppError(403, 'Recording consent is required before uploading audio');
+    }
 
     if (!req.file) throw new AppError(400, 'No audio file provided');
 

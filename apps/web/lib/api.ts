@@ -183,6 +183,8 @@ export const meetingsApi = {
 
   stop: (id: string) => api.post(`/meetings/${id}/stop`),
 
+  confirmConsent: (id: string) => api.post(`/meetings/${id}/consent`),
+
   process: (id: string) => api.post(`/meetings/${id}/process`),
 
   uploadAudio: (id: string, file: File, onProgress?: (pct: number) => void) => {

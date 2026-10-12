@@ -73,6 +73,14 @@ export default function RecordMeetingPage({ params }: { params: { id: string } }
   const startRecording = async () => {
     setError('');
     try {
+      // Persist the per-meeting consent before capture so the server can
+      // enforce it (only active when the recording-consent flag is on).
+      await meetingsApi.confirmConsent(params.id);
+    } catch (err) {
+      setError('Could not record your consent. Please try again.');
+      return;
+    }
+    try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -326,6 +334,10 @@ export default function RecordMeetingPage({ params }: { params: { id: string } }
                   detection. Always review the transcript before relying on it.
                 </div>
               )}
+
+              <div className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-800">
+                <strong>Recording notice.</strong> [SET: recording consent notice]
+              </div>
 
               <label className="flex items-start gap-3 text-sm text-gray-700">
                 <input
