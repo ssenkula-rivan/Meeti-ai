@@ -144,48 +144,33 @@ export default function MeetingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-slate-600 font-medium">Loading meetings...</div>
+      <div className="flex flex-1 items-center justify-center py-24">
+        <div className="text-slate-500 font-medium">Loading meetings...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Top Navbar */}
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center gap-6">
-              <Link href="/dashboard" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                Meeti
-              </Link>
-              <div className="hidden md:flex items-center gap-5 text-sm font-medium text-slate-600">
-                <Link href="/dashboard" className="hover:text-blue-600 transition">Home</Link>
-                <Link href="/dashboard/meetings" className="text-blue-600 font-semibold border-b-2 border-blue-600 pb-1">Meetings</Link>
-                <Link href="/dashboard/tasks" className="hover:text-blue-600 transition">Tasks</Link>
-                <Link href="/dashboard/integrations" className="hover:text-blue-600 transition">Integrations</Link>
-                <Link href="/dashboard/developer" className="hover:text-blue-600 transition">Developer & API</Link>
-                <Link href="/dashboard/organizations" className="hover:text-blue-600 transition">Organizations</Link>
-                <Link href="/dashboard/billing" className="hover:text-blue-600 transition">Billing</Link>
-                <Link href="/dashboard/settings" className="hover:text-blue-600 transition">Settings</Link>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Link
-                href="/dashboard/meetings/new"
-                className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 font-semibold text-sm shadow-xs transition"
-              >
-                + Start Meeting
-              </Link>
-            </div>
+    <main className="flex-1 px-6 py-8">
+      {/* Page header */}
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">My meetings</h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Every conversation, searchable and organized.</p>
           </div>
+          <Link
+            href="/dashboard/meetings/new"
+            className="inline-flex items-center gap-2 self-start rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 sm:self-auto"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            Start meeting
+          </Link>
         </div>
-      </nav>
+      </div>
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto mt-6 max-w-7xl">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Left Sidebar: Folders & Tags */}
           <aside className="lg:col-span-1 space-y-6">
@@ -534,7 +519,7 @@ export default function MeetingsPage() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }

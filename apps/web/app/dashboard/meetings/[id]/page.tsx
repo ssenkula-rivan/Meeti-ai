@@ -459,7 +459,7 @@ export default function MeetingDetailPage({ params }: { params: { id: string } }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="text-gray-600 font-medium">Loading meeting notes...</div>
       </div>
     );
@@ -467,7 +467,7 @@ export default function MeetingDetailPage({ params }: { params: { id: string } }
 
   if (error || !meeting) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
+      <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 gap-4">
         <div className="text-red-600 font-medium">{error || 'Meeting not found'}</div>
         <button
           onClick={() => router.push('/dashboard/meetings')}
@@ -480,7 +480,7 @@ export default function MeetingDetailPage({ params }: { params: { id: string } }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex-1 bg-slate-50 dark:bg-slate-950">
       <nav className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">

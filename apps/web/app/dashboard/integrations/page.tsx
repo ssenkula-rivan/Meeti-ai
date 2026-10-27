@@ -192,41 +192,7 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Top Navbar */}
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center gap-6">
-              <Link href="/dashboard" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                Meeti
-              </Link>
-              <div className="hidden md:flex items-center gap-5 text-sm font-medium text-slate-600">
-                <Link href="/dashboard" className="hover:text-blue-600 transition">Home</Link>
-                <Link href="/dashboard/meetings" className="hover:text-blue-600 transition">Meetings</Link>
-                <Link href="/dashboard/tasks" className="hover:text-blue-600 transition">Tasks</Link>
-                <Link href="/dashboard/integrations" className="text-blue-600 font-semibold border-b-2 border-blue-600 pb-1">Integrations</Link>
-                <Link href="/dashboard/developer" className="hover:text-blue-600 transition">Developer & API</Link>
-                <Link href="/dashboard/organizations" className="hover:text-blue-600 transition">Organizations</Link>
-                <Link href="/dashboard/billing" className="hover:text-blue-600 transition">Billing</Link>
-                <Link href="/dashboard/settings" className="hover:text-blue-600 transition">Settings</Link>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                localStorage.removeItem('auth_token');
-                router.push('/login');
-              }}
-              className="text-sm font-medium text-slate-500 hover:text-red-600 transition"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-blue-600 font-semibold tracking-wide uppercase">
             <span>Ecosystem & Sync</span>
@@ -513,6 +479,5 @@ export default function IntegrationsPage() {
           </div>
         )}
       </main>
-    </div>
   );
 }

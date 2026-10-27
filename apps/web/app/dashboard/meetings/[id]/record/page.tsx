@@ -239,14 +239,14 @@ export default function RecordMeetingPage({ params }: { params: { id: string } }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="text-gray-600 font-medium">Loading session...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex-1 bg-slate-50 dark:bg-slate-950">
       <nav className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
