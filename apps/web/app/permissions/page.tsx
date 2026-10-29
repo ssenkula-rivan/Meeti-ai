@@ -8,16 +8,23 @@ export default function PermissionsPage() {
   const [step, setStep] = useState(1);
   const [microphonePermission, setMicrophonePermission] = useState<PermissionState>('prompt');
   const [notificationPermission, setNotificationPermission] = useState<PermissionState>('prompt');
+  const [micError, setMicError] = useState<string | null>(null);
+  // 'checking' -> verifying the session; 'redirecting' -> no session, heading to
+  // sign-in; 'ready' -> signed in, show the flow. This prevents the blank
+  // "no response" flash a direct visit used to show while the redirect ran.
+  const [authState, setAuthState] = useState<'checking' | 'redirecting' | 'ready'>('checking');
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (!token) {
-      router.push('/login');
-      return;
+      setAuthState('redirecting');
+      const t = setTimeout(() => router.push('/login'), 400);
+      return () => clearTimeout(t);
     }
 
     // Check current permission states
     checkPermissions();
+    setAuthState('ready');
   }, [router]);
 
   const checkPermissions = async () => {
@@ -39,14 +46,27 @@ export default function PermissionsPage() {
   };
 
   const requestMicrophonePermission = async () => {
+    setMicError(null);
+    // getUserMedia requires a secure context; surface a clear message instead of
+    // silently doing nothing (which previously read as "no response").
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicError('This browser does not expose a microphone API. You can continue and enable it later.');
+      setMicrophonePermission('denied');
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       // Stop the stream immediately after getting permission
       stream.getTracks().forEach(track => track.stop());
       setMicrophonePermission('granted');
       setStep(2);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Microphone permission denied:', error);
+      setMicError(
+        error?.name === 'NotAllowedError'
+          ? 'Microphone access was blocked. You can skip for now and enable it in your browser settings.'
+          : 'We could not access the microphone. You can skip for now and try again later.'
+      );
       setMicrophonePermission('denied');
     }
   };
@@ -71,6 +91,19 @@ export default function PermissionsPage() {
   const handleComplete = () => {
     router.push('/dashboard');
   };
+
+  if (authState !== 'ready') {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600" />
+          <p className="text-sm font-medium text-gray-500">
+            {authState === 'redirecting' ? 'Redirecting to sign in\u2026' : 'Checking your session\u2026'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center py-12 px-4">
@@ -104,7 +137,7 @@ export default function PermissionsPage() {
                   <span className="text-green-600">Permission granted</span>
                 )}
                 {microphonePermission === 'denied' && (
-                  <span className="text-red-600">Permission denied. Please enable in browser settings.</span>
+                  <span className="text-red-600">{micError || 'Permission denied. Please enable in browser settings.'}</span>
                 )}
                 {microphonePermission === 'prompt' && (
                   <span>Click below to request permission</span>
