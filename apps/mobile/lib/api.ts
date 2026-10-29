@@ -147,6 +147,7 @@ export interface Meeting {
 export interface ActionItem {
   id: string;
   meeting_id: string;
+  meeting_title?: string;
   task: string;
   assignee?: string;
   due_date?: string;
@@ -253,13 +254,13 @@ export const actionItemsApi = {
     api.get<ActionItem[]>(`/action-items/meeting/${meetingId}`),
 
   getUserItems: (status?: string) =>
-    api.get<ActionItem[]>(`/action-items/user/items${status ? `?status=${status}` : ''}`),
+    api.get<ActionItem[]>(`/action-items/user${status ? `?status=${status}` : ''}`),
 
   create: (meetingId: string, item: { task: string; assignee?: string; dueDate?: string; priority?: string }) =>
-    api.post<ActionItem>(`/action-items/meeting/${meetingId}`, item),
+    api.post<ActionItem>('/action-items', { meetingId, ...item }),
 
   updateStatus: (id: string, status: 'pending' | 'in_progress' | 'completed') =>
-    api.patch<ActionItem>(`/action-items/${id}/status`, { status }),
+    api.patch<ActionItem>(`/action-items/${id}`, { status }),
 
   delete: (id: string) =>
     api.delete(`/action-items/${id}`),

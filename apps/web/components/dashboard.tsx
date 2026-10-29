@@ -75,16 +75,25 @@ export const Icon = {
   ),
 };
 
-const WORKSPACE_NAV = [
+// nav entry shape
+type NavEntry = {
+  href: string;
+  label: string;
+  icon: (p: IconProps) => JSX.Element;
+  exact?: boolean;
+  showBadge?: boolean;
+};
+
+const WORKSPACE_NAV: NavEntry[] = [
   { href: '/dashboard', label: 'Dashboard', exact: true, icon: Icon.Grid },
   { href: '/dashboard/meetings', label: 'My meetings', icon: Icon.Video },
   { href: '/dashboard/notes', label: 'Recordings', icon: Icon.Play },
-  { href: '/dashboard/tasks', label: 'Action items', icon: Icon.Check, badge: true },
+  { href: '/dashboard/tasks', label: 'Action items', icon: Icon.Check, showBadge: true },
   { href: '/dashboard/calendar', label: 'Calendar', icon: Icon.Calendar },
   { href: '/dashboard/ai', label: 'AI assistant', icon: Icon.Sparkles },
 ];
 
-const MANAGE_NAV = [
+const MANAGE_NAV: NavEntry[] = [
   { href: '/dashboard/organizations', label: 'Team members', icon: Icon.Users },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Icon.Plug },
 ];
@@ -161,7 +170,7 @@ export function Sidebar({ userName }: { userName?: string }) {
         <nav className="space-y-1">
           <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Workspace</p>
           {WORKSPACE_NAV.map((item) => (
-            <NavItem key={item.href} {...item} badge={item.badge ? pendingItems : undefined} active={isActive(item.href, item.exact)} />
+            <NavItem key={item.href} {...item} badge={item.showBadge ? pendingItems : undefined} active={isActive(item.href, item.exact)} />
           ))}
         </nav>
         <nav className="space-y-1">

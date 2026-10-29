@@ -22,3 +22,6 @@ dump.rdb
 
 # Private cost/purchase notes — never push to GitHub
 COSTS-TO-PAY.md
+
+# Temporary Figma design captures dropped in repo root (browser subagent)
+/figma-*.png

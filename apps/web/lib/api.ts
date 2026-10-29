@@ -406,7 +406,7 @@ export const actionItemsApi = {
     api.patch<ActionItem>(`/action-items/${id}`, data),
 
   updateStatus: (id: string, status: string) =>
-    api.patch(`/action-items/${id}/status`, { status }),
+    api.patch<ActionItem>(`/action-items/${id}`, { status }),
 
   delete: (id: string) =>
     api.delete(`/action-items/${id}`),
