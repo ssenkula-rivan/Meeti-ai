@@ -70,5 +70,39 @@ export const config = {
     from: process.env.MAIL_FROM || process.env.SMTP_USER || '',
   },
 
+  // Security / exposure controls.
+  security: {
+    // Browsers whose requests may call this API cross-origin. Native apps
+    // (iOS/Android) send no Origin header and are always allowed. Override in
+    // prod with ALLOWED_ORIGINS (comma-separated).
+    allowedOrigins: (process.env.ALLOWED_ORIGINS ||
+      [
+        'https://meeti.org.uk',
+        'https://www.meeti.org.uk',
+        // Cloudflare Workers preview + local dev.
+        'https://meeti-web.pages.dev',
+        'http://localhost:3000',
+        'http://localhost:3001',
+      ].join(','))
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean),
+    rateLimit: {
+      // General API traffic: per IP, requests per window.
+      windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
+      max: parseInt(process.env.RATE_LIMIT_MAX || '300', 10),
+      // Auth endpoints (login/register/OTP/reset): much tighter to stop
+      // credential stuffing and brute force.
+      authWindowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || '900000', 10),
+      authMax: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '20', 10),
+    },
+  },
+
   plans: PLANS,
 };
+
+// Fail closed: never let production run with the placeholder signing key,
+// otherwise anyone could forge JWTs and read other users' data.
+if (config.nodeEnv === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET must be set in production. Refusing to start with the default signing key.');
+}
