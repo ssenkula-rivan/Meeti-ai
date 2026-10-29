@@ -1,0 +1,83 @@
+name: Mobile Release (Expo EAS)
+
+# Two distinct, deliberately separated paths (never auto-ship a native build):
+#   1. OTA update (JavaScript/assets) -> installed apps fetch it automatically.
+#   2. Native build (APK / iOS)       -> only on explicit dispatch; requires
+#      store / Play distribution and can NOT install silently over an old build.
+#
+# Prerequisite (one-time, developer): an EAS project exists (extra.eas.projectId
+# in app.json via `eas init`) and `expo-updates` is installed (`npx expo install
+# expo-updates`). Tracked in issue #60. This workflow will fail loudly until then.
+#
+# Required GitHub Secret:
+#   EXPO_TOKEN - EAS access token (expo.dev account settings > Access Tokens)
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/mobile/**'
+  workflow_dispatch:
+    inputs:
+      native:
+        description: 'Also run a native EAS build (APK / iOS) in addition to OTA'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-release
+  cancel-in-progress: false
+
+jobs:
+  ota:
+    name: Publish OTA update (JS/assets)
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Guard - require EXPO_TOKEN
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN is not set. Mobile OTA is disabled until EAS is configured (see issue #60)."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - name: Publish production OTA update
+        working-directory: apps/mobile
+        run: |
+          npx expo install expo-updates --check
+          npx eas update --branch production --message "OTA $GITHUB_SHA"
+
+  native:
+    name: Build native app (APK / iOS)
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.native == 'true' }}
+    needs: ota
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build Android (production APK/AAB)
+        working-directory: apps/mobile
+        run: npx eas build -p android --profile production --non-interactive
+      - name: Build iOS (production)
+        working-directory: apps/mobile
+        run: npx eas build -p ios --profile production --non-interactive

@@ -1,0 +1,105 @@
+name: Deploy API (AWS EC2)
+
+# Push to master that touches the API auto-deploys to the EC2 host.
+# The 1GB t3.micro cannot run tsc (OOM), so we BUILD dist on the runner and
+# ship only the compiled output to the server, then rebuild the container.
+# Data lives in named Docker volumes (pgdata, uploads) and gitignored .env, so
+# `git reset --hard` + rebuild does not touch customer data or secrets.
+#
+# Required GitHub Secrets:
+#   API_SSH_HOST  - EC2 public IP / hostname
+#   API_SSH_USER  - login user (e.g. ubuntu)
+#   API_SSH_KEY   - PRIVATE ssh key (the one whose public key is in authorized_keys)
+#   API_SSH_PORT  - optional, defaults to 22
+# Optional repo variable:
+#   API_DEPLOY_PATH - path to the repo on the server (default /home/ubuntu/ai-meeting)
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker-compose.prod.yml'
+      - 'Caddyfile'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build dist & deploy API
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      API_SSH_PORT: ${{ secrets.API_SSH_PORT }}
+      DEPLOY_PATH: ${{ vars.API_DEPLOY_PATH }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verify required secrets are configured
+        env:
+          HOST: ${{ secrets.API_SSH_HOST }}
+          KEY: ${{ secrets.API_SSH_KEY }}
+        run: |
+          if [ -z "$HOST" ] || [ -z "$KEY" ]; then
+            echo "::error::API_SSH_HOST / API_SSH_KEY are not set. Add them to enable API auto-deploy."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      # Deploy gate: compile + tests must pass before anything ships.
+      - name: Type-check, build and test
+        run: npm run build && npm test
+
+      # Build ONLY the two packages the runtime image needs (matches DEPLOY.md).
+      - name: Build database and api dist
+        run: npm run build -w @meeti/database && npm run build -w @meeti/api
+
+      - name: Bundle compiled dist
+        run: tar -czf meeti-dist.tgz apps/api/dist packages/database/dist
+
+      - name: Upload dist bundle to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.API_SSH_HOST }}
+          username: ${{ secrets.API_SSH_USER }}
+          key: ${{ secrets.API_SSH_KEY }}
+          port: ${{ secrets.API_SSH_PORT || 22 }}
+          source: meeti-dist.tgz
+          target: /tmp
+
+      - name: Update source, extract dist, rebuild container, smoke test
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.API_SSH_HOST }}
+          username: ${{ secrets.API_SSH_USER }}
+          key: ${{ secrets.API_SSH_KEY }}
+          port: ${{ secrets.API_SSH_PORT || 22 }}
+          envs: DEPLOY_PATH,API_SSH_PORT
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${DEPLOY_PATH:-/home/ubuntu/ai-meeting}"
+            cd "$DEPLOY_PATH"
+            git fetch --all --prune
+            git reset --hard origin/master
+            tar -xzf /tmp/meeti-dist.tgz
+            docker compose -f docker-compose.prod.yml up -d --build api
+            echo "Waiting for API to become healthy..."
+            sleep 8
+            curl -fsS http://localhost:3000/health
