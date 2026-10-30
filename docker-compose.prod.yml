@@ -36,7 +36,12 @@ services:
       DB_PORT: "5432"
       NODE_ENV: production
     ports:
-      - "3000:3000"
+      # Bind to loopback only. Caddy reaches the API over the internal Docker
+      # network (reverse_proxy api:3000), so the API never needs a public host
+      # binding. Publishing 0.0.0.0:3000 exposed the raw, unencrypted API to the
+      # whole internet (bypassing TLS/Caddy). 127.0.0.1 keeps local health
+      # checks (curl localhost:3000) working while closing that hole.
+      - "127.0.0.1:3000:3000"
     volumes:
       # Persist recorded audio so transcription can read it back
       - uploads:/repo/uploads
