@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { config } from './config';
 import { errorHandler } from './middleware/error-handler';
 import { rateLimit } from './middleware/rate-limit';
+import { corsOriginDelegate } from './middleware/cors';
 import { authRouter } from './routes/auth';
 import { oauthRouter } from './routes/oauth';
 import { meetingsRouter } from './routes/meetings';
@@ -33,14 +34,9 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(
   cors({
-    origin(origin, cb) {
-      // Allow non-browser clients (native iOS/Android, curl, server-to-server)
-      // that send no Origin, plus any explicitly allow-listed web origin.
-      if (!origin || config.security.allowedOrigins.includes(origin)) {
-        return cb(null, true);
-      }
-      return cb(new Error('Not allowed by CORS'));
-    },
+    // Allowlist logic lives in ./middleware/cors (unit-tested). Non-browser
+    // clients (native apps, curl, server-to-server) send no Origin and pass.
+    origin: corsOriginDelegate(config.security.allowedOrigins),
     // Auth is via Bearer tokens in a header, not cookies, so no credentials.
     credentials: false,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
