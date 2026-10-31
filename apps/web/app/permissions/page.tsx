@@ -146,8 +146,12 @@ export default function PermissionsPage() {
             </div>
 
             <button
-              onClick={requestMicrophonePermission}
-              disabled={microphonePermission === 'granted'}
+              onClick={() => {
+                // Already granted on a previous visit: the request handler would
+                // never run, so advance directly instead of leaving a dead button.
+                if (microphonePermission === 'granted') setStep(2);
+                else requestMicrophonePermission();
+              }}
               className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
             >
               {microphonePermission === 'granted' ? 'Continue' : 'Allow Microphone Access'}
@@ -190,8 +194,11 @@ export default function PermissionsPage() {
             </div>
 
             <button
-              onClick={requestNotificationPermission}
-              disabled={notificationPermission === 'granted'}
+              onClick={() => {
+                // Same as the microphone step: advance when already granted.
+                if (notificationPermission === 'granted') setStep(3);
+                else requestNotificationPermission();
+              }}
               className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
             >
               {notificationPermission === 'granted' ? 'Continue' : 'Enable Notifications'}
