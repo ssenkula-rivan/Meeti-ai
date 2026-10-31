@@ -41,6 +41,12 @@ function summaryTone(status: Meeting['status']) {
   return { label: status || 'Draft', cls: 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300' };
 }
 
+function priorityTone(priority: string) {
+  if (priority === 'high') return 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300';
+  if (priority === 'medium') return 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300';
+  return 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300';
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const profile = useDashboardProfile();
@@ -71,6 +77,15 @@ export default function DashboardPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleTask = async (item: ActionItem) => {
+    try {
+      await actionItemsApi.updateStatus(item.id, 'completed');
+      setActionItems((prev) => prev.filter((a) => a.id !== item.id));
+    } catch (err) {
+      console.error('Failed to mark task complete:', err);
     }
   };
 
@@ -222,6 +237,45 @@ export default function DashboardPage() {
                   </table>
                 </div>
                 <p className="mt-3 text-xs text-slate-400">Private and securely stored</p>
+              </section>
+
+              {/* Pending action items */}
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Pending action items</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Tick things off as you finish them.</p>
+                  </div>
+                  <Link href="/dashboard/tasks" className="inline-flex items-center gap-1 text-sm font-semibold text-violet-600 hover:text-violet-700 dark:text-violet-300">
+                    View all tasks <Icon.Arrow className="h-4 w-4" />
+                  </Link>
+                </div>
+                <div className="mt-4 space-y-3">
+                  {actionItems.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-slate-400">All tasks are up to date.</p>
+                  ) : (
+                    actionItems.slice(0, 5).map((item) => (
+                      <div key={item.id} className="flex items-start gap-3 rounded-xl border border-slate-200 p-4 dark:border-white/10">
+                        <button
+                          onClick={() => handleToggleTask(item)}
+                          title="Mark as complete"
+                          aria-label="Mark as complete"
+                          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-300 text-transparent transition hover:border-violet-400 hover:text-violet-500 dark:border-white/20"
+                        >
+                          <Icon.Check className="h-3.5 w-3.5" />
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">{item.task}</p>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                            {item.assignee && <span>Assignee: <strong className="font-medium text-slate-700 dark:text-slate-200">{item.assignee}</strong></span>}
+                            {item.due_date && <span>Due: <strong className="font-medium text-slate-700 dark:text-slate-200">{new Date(item.due_date).toLocaleDateString()}</strong></span>}
+                          </div>
+                        </div>
+                        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${priorityTone(item.priority)}`}>{item.priority || 'Normal'}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
               </section>
             </div>
 
