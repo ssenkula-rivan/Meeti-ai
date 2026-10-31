@@ -6,8 +6,10 @@ import Link from 'next/link';
 import {
   meetingsApi,
   actionItemsApi,
+  billingApi,
   type Meeting,
   type ActionItem,
+  type UsageSummary,
 } from '@/lib/api';
 import {
   StatTile,
@@ -44,6 +46,7 @@ export default function DashboardPage() {
   const profile = useDashboardProfile();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,12 +55,14 @@ export default function DashboardPage() {
 
   const loadData = async () => {
     try {
-      const [meetingsRes, actionsRes] = await Promise.all([
+      const [meetingsRes, actionsRes, usageRes] = await Promise.all([
         meetingsApi.list(),
         actionItemsApi.getUserItems('pending').catch(() => ({ data: [] })),
+        billingApi.getUsageSummary().catch(() => null),
       ]);
       setMeetings(meetingsRes.data);
       setActionItems(actionsRes.data || []);
+      setUsage(usageRes?.data ?? null);
     } catch (error: any) {
       console.error('Failed to load data:', error);
       if (error?.response?.status === 401) {
@@ -105,6 +110,11 @@ export default function DashboardPage() {
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const firstName = (profile?.profile?.full_name || '').split(' ')[0];
   const recent = meetings.slice(0, 5);
+
+  const planName = usage?.plan.name;
+  const usageLimit = usage?.transcriptionMinutes.limit ?? 0;
+  const usageUsed = usage?.transcriptionMinutes.used ?? 0;
+  const usagePct = usageLimit > 0 ? Math.min(100, Math.round((usageUsed / usageLimit) * 100)) : 0;
 
   return (
     <main className="flex-1 px-6 py-8">
@@ -288,13 +298,13 @@ export default function DashboardPage() {
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
                 <div className="flex items-center justify-between">
                   <h2 className="text-base font-semibold text-slate-900 dark:text-white">Your workspace usage</h2>
-                  <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-600 dark:bg-violet-500/10 dark:text-violet-300">Pro</span>
+                  {planName && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-600 dark:bg-violet-500/10 dark:text-violet-300">{planName}</span>}
                 </div>
                 <div className="mt-4 space-y-3 text-sm">
                   <div>
-                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400"><span>Transcription minutes</span><span className="font-medium text-slate-900 dark:text-white">{stats.totalMinutes.toLocaleString()} / 2,000</span></div>
+                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400"><span>Transcription minutes</span><span className="font-medium text-slate-900 dark:text-white">{usage ? `${usageUsed.toLocaleString()} / ${usageLimit.toLocaleString()}` : '—'}</span></div>
                     <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
-                      <div className="h-full rounded-full bg-violet-500" style={{ width: `${Math.min(100, (stats.totalMinutes / 2000) * 100)}%` }} />
+                      <div className="h-full rounded-full bg-violet-500" style={{ width: `${usagePct}%` }} />
                     </div>
                   </div>
                 </div>
