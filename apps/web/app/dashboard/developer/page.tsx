@@ -160,7 +160,7 @@ export default function DeveloperPage() {
     <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <div className="flex items-center gap-2 text-sm text-blue-600 font-semibold tracking-wide uppercase">
+            <div className="flex items-center gap-2 text-sm text-violet-600 font-semibold tracking-wide uppercase">
               <span>Developer Platform</span>
             </div>
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mt-1">API & Webhooks</h1>
@@ -177,7 +177,7 @@ export default function DeveloperPage() {
                   setKeyName('');
                   setShowKeyModal(true);
                 }}
-                className="py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-xs transition flex items-center gap-2"
+                className="py-2.5 px-4 bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm rounded-xl shadow-xs transition flex items-center gap-2"
               >
                 <span>+</span> Generate API Key
               </button>
@@ -185,7 +185,7 @@ export default function DeveloperPage() {
             {activeTab === 'webhooks' && (
               <button
                 onClick={() => setShowWebhookModal(true)}
-                className="py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-xs transition flex items-center gap-2"
+                className="py-2.5 px-4 bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm rounded-xl shadow-xs transition flex items-center gap-2"
               >
                 <span>+</span> Add Webhook Endpoint
               </button>
@@ -217,7 +217,7 @@ export default function DeveloperPage() {
             onClick={() => setActiveTab('keys')}
             className={`pb-4 text-sm font-semibold transition ${
               activeTab === 'keys'
-                ? 'text-blue-600 border-b-2 border-blue-600'
+                ? 'text-violet-600 border-b-2 border-violet-600'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -227,7 +227,7 @@ export default function DeveloperPage() {
             onClick={() => setActiveTab('webhooks')}
             className={`pb-4 text-sm font-semibold transition ${
               activeTab === 'webhooks'
-                ? 'text-blue-600 border-b-2 border-blue-600'
+                ? 'text-violet-600 border-b-2 border-violet-600'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -237,7 +237,7 @@ export default function DeveloperPage() {
             onClick={() => setActiveTab('docs')}
             className={`pb-4 text-sm font-semibold transition ${
               activeTab === 'docs'
-                ? 'text-blue-600 border-b-2 border-blue-600'
+                ? 'text-violet-600 border-b-2 border-violet-600'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -254,7 +254,7 @@ export default function DeveloperPage() {
               </div>
             ) : apiKeys.length === 0 ? (
               <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
-                <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center mx-auto mb-3 text-xl">
+                <div className="w-12 h-12 rounded-full bg-violet-50 text-violet-600 font-bold flex items-center justify-center mx-auto mb-3 text-xl">
                   🔑
                 </div>
                 <h3 className="text-base font-bold text-slate-900">No API Keys Generated</h3>
@@ -263,7 +263,7 @@ export default function DeveloperPage() {
                 </p>
                 <button
                   onClick={() => setShowKeyModal(true)}
-                  className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition"
+                  className="mt-4 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold transition"
                 >
                   Generate Key
                 </button>
@@ -291,7 +291,7 @@ export default function DeveloperPage() {
                         <td className="py-4 px-6">
                           <div className="flex gap-1.5 flex-wrap">
                             {key.scopes?.map((s) => (
-                              <span key={s} className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-medium">
+                              <span key={s} className="px-2 py-0.5 rounded-md bg-violet-50 text-violet-700 text-xs font-medium">
                                 {s}
                               </span>
                             ))}
@@ -329,7 +329,7 @@ export default function DeveloperPage() {
               </div>
             ) : webhooks.length === 0 ? (
               <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
-                <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center mx-auto mb-3 text-xl">
+                <div className="w-12 h-12 rounded-full bg-violet-50 text-violet-600 font-bold flex items-center justify-center mx-auto mb-3 text-xl">
                   ⚡
                 </div>
                 <h3 className="text-base font-bold text-slate-900">No Webhook Endpoints Configured</h3>
@@ -338,7 +338,7 @@ export default function DeveloperPage() {
                 </p>
                 <button
                   onClick={() => setShowWebhookModal(true)}
-                  className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition"
+                  className="mt-4 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold transition"
                 >
                   Add Webhook Endpoint
                 </button>
@@ -381,7 +381,7 @@ export default function DeveloperPage() {
                       </button>
                       <button
                         onClick={() => handleTestWebhook(wh.id)}
-                        className="px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-blue-600 rounded-lg text-xs font-semibold transition"
+                        className="px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-violet-600 rounded-lg text-xs font-semibold transition"
                       >
                         Send Test Ping
                       </button>
@@ -405,7 +405,7 @@ export default function DeveloperPage() {
             <div>
               <h2 className="text-xl font-bold text-slate-900">Public API Quickstart (v1)</h2>
               <p className="text-sm text-slate-600 mt-1">
-                Authenticate by passing your key in the <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-blue-600 font-mono">Authorization: Bearer &lt;YOUR_API_KEY&gt;</code> header.
+                Authenticate by passing your key in the <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-violet-600 font-mono">Authorization: Bearer &lt;YOUR_API_KEY&gt;</code> header.
               </p>
             </div>
 
@@ -438,7 +438,7 @@ export default function DeveloperPage() {
             {/* Create Meeting */}
             <div className="border border-slate-200 rounded-xl p-5 bg-slate-50/50">
               <div className="flex items-center gap-2.5 mb-2">
-                <span className="px-2.5 py-0.5 bg-blue-600 text-white rounded text-xs font-bold font-mono">POST</span>
+                <span className="px-2.5 py-0.5 bg-violet-600 text-white rounded text-xs font-bold font-mono">POST</span>
                 <span className="font-mono text-sm font-semibold text-slate-800">/v1/meetings</span>
               </div>
               <p className="text-xs text-slate-600 mb-3">Create and start or queue a new meeting recording programmatically.</p>
@@ -475,7 +475,7 @@ export default function DeveloperPage() {
                       placeholder="e.g., Zapier Integration, Production Worker"
                       value={keyName}
                       onChange={(e) => setKeyName(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500"
                     />
                   </div>
 
@@ -490,7 +490,7 @@ export default function DeveloperPage() {
                             if (e.target.checked) setKeyScopes([...keyScopes, 'read']);
                             else setKeyScopes(keyScopes.filter((s) => s !== 'read'));
                           }}
-                          className="rounded text-blue-600 focus:ring-blue-500"
+                          className="rounded text-violet-600 focus:ring-violet-500"
                         />
                         <span><strong>read</strong>: List & view meetings, summaries, action items</span>
                       </label>
@@ -502,7 +502,7 @@ export default function DeveloperPage() {
                             if (e.target.checked) setKeyScopes([...keyScopes, 'write']);
                             else setKeyScopes(keyScopes.filter((s) => s !== 'write'));
                           }}
-                          className="rounded text-blue-600 focus:ring-blue-500"
+                          className="rounded text-violet-600 focus:ring-violet-500"
                         />
                         <span><strong>write</strong>: Create meetings, upload audio, update tasks</span>
                       </label>
@@ -520,7 +520,7 @@ export default function DeveloperPage() {
                     <button
                       type="submit"
                       disabled={creatingKey}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition"
+                      className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-semibold shadow-xs transition"
                     >
                       {creatingKey ? 'Generating...' : 'Create Key'}
                     </button>
@@ -581,7 +581,7 @@ export default function DeveloperPage() {
                     placeholder="https://api.yourdomain.com/webhooks/meeti"
                     value={webhookUrl}
                     onChange={(e) => setWebhookUrl(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500"
                   />
                 </div>
 
@@ -592,7 +592,7 @@ export default function DeveloperPage() {
                     placeholder="e.g., Slack bot sync"
                     value={webhookDescription}
                     onChange={(e) => setWebhookDescription(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500"
                   />
                 </div>
 
@@ -608,7 +608,7 @@ export default function DeveloperPage() {
                             if (e.target.checked) setSelectedEvents([...selectedEvents, ev]);
                             else setSelectedEvents(selectedEvents.filter((item) => item !== ev));
                           }}
-                          className="rounded text-blue-600 focus:ring-blue-500"
+                          className="rounded text-violet-600 focus:ring-violet-500"
                         />
                         <span>{ev}</span>
                       </label>
@@ -627,7 +627,7 @@ export default function DeveloperPage() {
                   <button
                     type="submit"
                     disabled={creatingWebhook}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition"
+                    className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-semibold shadow-xs transition"
                   >
                     {creatingWebhook ? 'Registering...' : 'Register Endpoint'}
                   </button>
