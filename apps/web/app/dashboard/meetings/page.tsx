@@ -1,38 +1,52 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  meetingsApi,
-  foldersApi,
-  tagsApi,
-  type Meeting,
-  type FolderItem,
-  type TagItem,
-} from '@/lib/api';
+import { meetingsApi, type Meeting } from '@/lib/api';
+import { Icon } from '@/components/dashboard';
+
+/* My meetings — matches the Meeti design: a full-width, violet, table-style
+   list wired to real data. The design mockup shows an "Up next" hero, a
+   Participants column and time-based "Upcoming" tabs; those need scheduled
+   meetings and participant data the API does not expose, so we render the
+   real signal only (status, date, duration, AI summary) instead of faking it. */
+
+type StatusTab = 'all' | 'completed' | 'processing' | 'draft';
+
+function statusTone(status: Meeting['status']) {
+  if (status === 'completed') return { label: 'Ready', cls: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300' };
+  if (status === 'processing') return { label: 'Processing', cls: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300' };
+  if (status === 'recording') return { label: 'Recording', cls: 'bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300' };
+  if (status === 'failed') return { label: 'Failed', cls: 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300' };
+  if (status === 'archived') return { label: 'Archived', cls: 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300' };
+  return { label: 'Draft', cls: 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300' };
+}
+
+function dayLabel(date: Date) {
+  const now = new Date();
+  const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diffDays = Math.round((startOf(now) - startOf(date)) / 86400000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  return null;
+}
+
+function formatDuration(seconds?: number) {
+  if (!seconds) return '--';
+  const mins = Math.round(seconds / 60);
+  if (mins < 60) return `${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  return `${hrs}h ${mins % 60}m`;
+}
 
 export default function MeetingsPage() {
   const router = useRouter();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [folders, setFolders] = useState<FolderItem[]>([]);
-  const [tags, setTags] = useState<TagItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedFolder, setSelectedFolder] = useState<string>('all');
-  const [selectedTag, setSelectedTag] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-
-  // New Folder Modal
-  const [showFolderModal, setShowFolderModal] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [newFolderColor, setNewFolderColor] = useState('#2563eb');
-
-  // New Tag Modal
-  const [showTagModal, setShowTagModal] = useState(false);
-  const [newTagName, setNewTagName] = useState('');
-  const [newTagColor, setNewTagColor] = useState('#059669');
 
   useEffect(() => {
     loadAll();
@@ -40,17 +54,14 @@ export default function MeetingsPage() {
 
   const loadAll = async () => {
     try {
-      setLoading(true);
-      const [mRes, fRes, tRes] = await Promise.all([
-        meetingsApi.list(),
-        foldersApi.list().catch(() => ({ data: [] })),
-        tagsApi.list().catch(() => ({ data: [] })),
-      ]);
-      setMeetings(mRes.data || []);
-      setFolders(fRes.data || []);
-      setTags(tRes.data || []);
-    } catch (err) {
-      console.error('Failed to load meetings data:', err);
+      const res = await meetingsApi.list();
+      setMeetings(res.data || []);
+    } catch (err: any) {
+      console.error('Failed to load meetings:', err);
+      if (err?.response?.status === 401) {
+        localStorage.removeItem('auth_token');
+        router.push('/login');
+      }
     } finally {
       setLoading(false);
     }
@@ -63,7 +74,6 @@ export default function MeetingsPage() {
       setMeetings(res.data || []);
       return;
     }
-
     try {
       setIsSearching(true);
       const res = await meetingsApi.search(searchQuery.trim());
@@ -81,444 +91,202 @@ export default function MeetingsPage() {
     setMeetings(res.data || []);
   };
 
-  const handleCreateFolder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newFolderName.trim()) return;
-    try {
-      await foldersApi.create(newFolderName.trim(), newFolderColor);
-      setShowFolderModal(false);
-      setNewFolderName('');
-      const fRes = await foldersApi.list();
-      setFolders(fRes.data || []);
-    } catch (err) {
-      console.error('Failed to create folder:', err);
-    }
-  };
+  const counts = useMemo(
+    () => ({
+      all: meetings.length,
+      completed: meetings.filter((m) => m.status === 'completed').length,
+      processing: meetings.filter((m) => m.status === 'processing').length,
+      draft: meetings.filter((m) => m.status === 'draft').length,
+    }),
+    [meetings]
+  );
 
-  const handleCreateTag = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTagName.trim()) return;
-    try {
-      const formatted = newTagName.trim().replace(/^#/, '');
-      await tagsApi.create(formatted, newTagColor);
-      setShowTagModal(false);
-      setNewTagName('');
-      const tRes = await tagsApi.list();
-      setTags(tRes.data || []);
-    } catch (err) {
-      console.error('Failed to create tag:', err);
-    }
-  };
-
-  const filteredMeetings = meetings.filter((meeting) => {
-    if (statusFilter !== 'all' && meeting.status !== statusFilter) return false;
-    return true;
-  });
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return '';
-    const mins = Math.floor(seconds / 60);
-    const hrs = Math.floor(mins / 60);
-    const remainingMins = mins % 60;
-
-    if (hrs > 0) {
-      return `${hrs}h ${remainingMins}m`;
-    }
-    return `${mins}m`;
-  };
+  const visible = statusFilter === 'all' ? meetings : meetings.filter((m) => m.status === statusFilter);
 
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center py-24">
-        <div className="text-slate-500 font-medium">Loading meetings...</div>
+        <div className="text-sm font-medium text-slate-400">Loading meetings...</div>
       </div>
     );
   }
 
+  const tabs: { key: StatusTab; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'completed', label: 'Completed' },
+    { key: 'processing', label: 'Processing' },
+    { key: 'draft', label: 'Draft' },
+  ];
+
   return (
     <main className="flex-1 px-6 py-8">
-      {/* Page header */}
       <div className="mx-auto max-w-7xl">
+        {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">My meetings</h1>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Every conversation, searchable and organized.</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Every conversation. Everything you need, in one place.</p>
           </div>
-          <Link
-            href="/dashboard/meetings/new"
-            className="inline-flex items-center gap-2 self-start rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 sm:self-auto"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-            Start meeting
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard/meetings/new"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/5"
+            >
+              <Icon.Link className="h-4 w-4 text-slate-400" /> Join with link
+            </Link>
+            <Link
+              href="/dashboard/meetings/new"
+              className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
+            >
+              <Icon.Plus className="h-4 w-4" /> New meeting
+            </Link>
+          </div>
         </div>
-      </div>
 
-      {/* Main Container */}
-      <div className="mx-auto mt-6 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Sidebar: Folders & Tags */}
-          <aside className="lg:col-span-1 space-y-6">
-            {/* Folders Section (#26) */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Folders</h3>
+        {/* List card */}
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
+          {/* Segmented tabs */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-white/10 dark:bg-white/5">
+              {tabs.map((t) => (
                 <button
-                  onClick={() => setShowFolderModal(true)}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                >
-                  + Add
-                </button>
-              </div>
-
-              <div className="space-y-1">
-                <button
-                  onClick={() => setSelectedFolder('all')}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-between ${
-                    selectedFolder === 'all'
-                      ? 'bg-blue-50 text-blue-700 font-bold'
-                      : 'text-slate-600 hover:bg-slate-50'
+                  key={t.key}
+                  onClick={() => setStatusFilter(t.key)}
+                  className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${
+                    statusFilter === t.key
+                      ? 'bg-white text-violet-700 shadow-sm dark:bg-slate-800 dark:text-violet-300'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
-                  <span>📁 All Folders</span>
-                  <span className="text-[11px] opacity-60">{meetings.length}</span>
+                  {t.label}
+                  <span className="ml-1.5 text-xs font-medium opacity-60">{counts[t.key]}</span>
                 </button>
-
-                {folders.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setSelectedFolder(f.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between ${
-                      selectedFolder === f.id
-                        ? 'bg-blue-50 text-blue-700 font-bold'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2 truncate">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: f.color || '#3b82f6' }} />
-                      <span className="truncate">{f.name}</span>
-                    </span>
-                    <span className="text-[11px] opacity-60">{f.meeting_count || 0}</span>
-                  </button>
-                ))}
-              </div>
+              ))}
             </div>
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              {visible.length} {visible.length === 1 ? 'meeting' : 'meetings'}
+            </span>
+          </div>
 
-            {/* Tags Section (#27) */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tags</h3>
-                <button
-                  onClick={() => setShowTagModal(true)}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                >
-                  + Add
-                </button>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => setSelectedTag('all')}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition ${
-                    selectedTag === 'all'
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  All
-                </button>
-                {tags.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelectedTag(t.id)}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition flex items-center gap-1.5 ${
-                      selectedTag === t.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: t.color || '#6b7280' }} />
-                    <span>#{t.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </aside>
-
-          {/* Right Main Column: Search, Filters & Meetings */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search meetings by title, notes, transcript, or action items..."
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={handleClearSearch}
-                    className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600 font-bold"
-                  >
-                    CLEAR
-                  </button>
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={isSearching}
-                className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-black transition disabled:opacity-50 shadow-xs"
-              >
-                {isSearching ? 'Searching...' : 'Search'}
-              </button>
-            </form>
-
-            {/* Filter Tabs */}
-            <div className="flex items-center justify-between">
-              <div className="flex gap-2">
-                {['all', 'completed', 'processing', 'draft'].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition ${
-                      statusFilter === status
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    {status}
-                  </button>
-                ))}
-              </div>
-
-              <span className="text-xs text-slate-500 font-medium">
-                {filteredMeetings.length} {filteredMeetings.length === 1 ? 'meeting' : 'meetings'}
+          {/* Search */}
+          <form onSubmit={handleSearch} className="mt-4 flex gap-2">
+            <div className="relative flex-1">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <Icon.Search className="h-4 w-4" />
               </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search meetings by title, notes, transcript, or action items..."
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-16 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  Clear
+                </button>
+              )}
             </div>
+            <button
+              type="submit"
+              disabled={isSearching}
+              className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
+            >
+              {isSearching ? 'Searching...' : 'Search'}
+            </button>
+          </form>
 
-            {/* Meetings List */}
-            {filteredMeetings.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-xs">
-                <div className="text-slate-500 text-sm mb-4">
-                  {searchQuery
-                    ? `No meetings found matching "${searchQuery}"`
-                    : statusFilter === 'all'
-                    ? 'No meetings recorded yet'
-                    : `No ${statusFilter} meetings found`}
-                </div>
-                {searchQuery ? (
-                  <button
-                    onClick={handleClearSearch}
-                    className="text-blue-600 hover:underline text-sm font-medium"
-                  >
-                    Reset search
-                  </button>
+          {/* Table */}
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400 dark:border-white/10">
+                  <th className="pb-3 font-medium">Meeting name</th>
+                  <th className="pb-3 font-medium">Date &amp; time</th>
+                  <th className="pb-3 font-medium">Duration</th>
+                  <th className="pb-3 font-medium">AI summary</th>
+                  <th className="pb-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                {visible.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {searchQuery
+                          ? `No meetings found matching “${searchQuery}”.`
+                          : statusFilter === 'all'
+                          ? 'No meetings recorded yet.'
+                          : `No ${statusFilter} meetings yet.`}
+                      </p>
+                      {searchQuery ? (
+                        <button onClick={handleClearSearch} className="mt-3 text-sm font-semibold text-violet-600 hover:text-violet-700 dark:text-violet-300">
+                          Reset search
+                        </button>
+                      ) : (
+                        <Link
+                          href="/dashboard/meetings/new"
+                          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700"
+                        >
+                          <Icon.Plus className="h-4 w-4" /> Start your first meeting
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
                 ) : (
-                  <Link
-                    href="/dashboard/meetings/new"
-                    className="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 inline-block font-semibold text-sm transition shadow-xs"
-                  >
-                    Start Your First Meeting
-                  </Link>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredMeetings.map((meeting) => (
-                  <Link
-                    key={meeting.id}
-                    href={`/dashboard/meetings/${meeting.id}`}
-                    className="block bg-white border border-slate-200/90 rounded-2xl p-5 hover:border-blue-400 hover:shadow-md transition group"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition text-base">
-                            {meeting.title}
-                          </h3>
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                              meeting.status === 'completed'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : meeting.status === 'processing'
-                                ? 'bg-amber-100 text-amber-800 animate-pulse'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            {meeting.status}
+                  visible.map((m) => {
+                    const tone = statusTone(m.status);
+                    const date = new Date(m.started_at || m.created_at);
+                    const dl = dayLabel(date);
+                    return (
+                      <tr key={m.id} className="group">
+                        <td className="py-3">
+                          <Link href={`/dashboard/meetings/${m.id}`} className="flex items-center gap-3">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300">
+                              <Icon.Video className="h-5 w-5" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate font-medium text-slate-900 group-hover:text-violet-700 dark:text-white dark:group-hover:text-violet-300">{m.title}</span>
+                              <span className="block truncate text-xs text-slate-400">{m.meeting_type || 'General'}</span>
+                            </span>
+                          </Link>
+                        </td>
+                        <td className="py-3 text-slate-500 dark:text-slate-400">
+                          <span className="block">
+                            {dl ? `${dl} · ` : ''}
+                            {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </span>
-                        </div>
-
-                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
-                          <span>{formatDate(meeting.created_at)}</span>
-                          {meeting.duration_seconds ? (
-                            <>
-                              <span>•</span>
-                              <span>{formatDuration(meeting.duration_seconds)}</span>
-                            </>
-                          ) : null}
-                          {meeting.meeting_type && (
-                            <>
-                              <span>•</span>
-                              <span className="capitalize">{meeting.meeting_type}</span>
-                            </>
-                          )}
-                          {meeting.detected_languages && meeting.detected_languages.length > 0 && (
-                            <>
-                              <span>•</span>
-                              <span className="uppercase text-[11px] font-semibold text-blue-600">
-                                {meeting.detected_languages.join(', ')}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="text-slate-400 group-hover:text-blue-600 transition pl-4">
-                        →
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+                          <span className="block text-xs text-slate-400">{date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+                        </td>
+                        <td className="py-3 text-slate-500 dark:text-slate-400">{formatDuration(m.duration_seconds)}</td>
+                        <td className="py-3">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${tone.cls}`}>{tone.label}</span>
+                        </td>
+                        <td className="py-3 text-right">
+                          <Link href={`/dashboard/meetings/${m.id}`} className="inline-flex items-center text-slate-300 transition group-hover:text-violet-600 dark:group-hover:text-violet-300">
+                            <Icon.Arrow className="h-4 w-4" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
-        </div>
 
-        {/* Modal: Create Folder */}
-        {showFolderModal && (
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200">
-              <form onSubmit={handleCreateFolder}>
-                <h3 className="text-base font-bold text-slate-900 mb-1">Create Folder</h3>
-                <p className="text-xs text-slate-500 mb-4">Organize meetings by project, client, or team.</p>
+          {visible.length > 0 && (
+            <p className="mt-4 text-xs text-slate-400">Showing {visible.length} of {meetings.length} meetings</p>
+          )}
+        </section>
 
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Folder Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Clients, Personal, Church, Q4 Roadmap"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div className="mb-6">
-                  <label className="block text-xs font-semibold text-slate-700 mb-2">Folder Color</label>
-                  <div className="flex gap-2">
-                    {['#2563eb', '#7c3aed', '#059669', '#dc2626', '#d97706', '#475569'].map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setNewFolderColor(c)}
-                        className={`w-7 h-7 rounded-full transition ${
-                          newFolderColor === c ? 'ring-2 ring-offset-2 ring-slate-900 scale-110' : ''
-                        }`}
-                        style={{ backgroundColor: c }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowFolderModal(false)}
-                    className="px-4 py-2 border border-slate-300 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold"
-                  >
-                    Save Folder
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Modal: Create Tag */}
-        {showTagModal && (
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200">
-              <form onSubmit={handleCreateTag}>
-                <h3 className="text-base font-bold text-slate-900 mb-1">Create Tag</h3>
-                <p className="text-xs text-slate-500 mb-4">Tag meetings with custom labels like #urgent or #marketing.</p>
-
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tag Name</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2 text-slate-400 font-bold">#</span>
-                    <input
-                      type="text"
-                      required
-                      placeholder="marketing"
-                      value={newTagName}
-                      onChange={(e) => setNewTagName(e.target.value)}
-                      className="w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <label className="block text-xs font-semibold text-slate-700 mb-2">Tag Color</label>
-                  <div className="flex gap-2">
-                    {['#059669', '#2563eb', '#7c3aed', '#dc2626', '#d97706', '#0891b2'].map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setNewTagColor(c)}
-                        className={`w-7 h-7 rounded-full transition ${
-                          newTagColor === c ? 'ring-2 ring-offset-2 ring-slate-900 scale-110' : ''
-                        }`}
-                        style={{ backgroundColor: c }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowTagModal(false)}
-                    className="px-4 py-2 border border-slate-300 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold"
-                  >
-                    Save Tag
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <p className="mt-4 flex items-center gap-2 text-xs text-slate-400">
+          <Icon.Check className="h-4 w-4" /> Meetings and notes are private to you. Workspace admins manage sharing permissions.
+        </p>
       </div>
     </main>
   );
