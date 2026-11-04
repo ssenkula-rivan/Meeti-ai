@@ -73,6 +73,12 @@ export const Icon = {
   Help: ({ className = base }: IconProps) => (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4" /><path d="M12 17h.01" /></svg>
   ),
+  Folder: ({ className = base }: IconProps) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+  ),
+  Tag: ({ className = base }: IconProps) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.6 13.4 12 22l-9-9V3h10z" /><circle cx="7.5" cy="7.5" r="1.5" /></svg>
+  ),
 };
 
 // nav entry shape
@@ -96,6 +102,11 @@ const WORKSPACE_NAV: NavEntry[] = [
 const MANAGE_NAV: NavEntry[] = [
   { href: '/dashboard/organizations', label: 'Team members', icon: Icon.Users },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Icon.Plug },
+];
+
+const ORGANIZATION_NAV: NavEntry[] = [
+  { href: '/dashboard/folders', label: 'Folders', icon: Icon.Folder },
+  { href: '/dashboard/tags', label: 'Tags', icon: Icon.Tag },
 ];
 
 function NavItem({
@@ -171,6 +182,12 @@ export function Sidebar({ userName }: { userName?: string }) {
           <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Workspace</p>
           {WORKSPACE_NAV.map((item) => (
             <NavItem key={item.href} {...item} badge={item.showBadge ? pendingItems : undefined} active={isActive(item.href, item.exact)} />
+          ))}
+        </nav>
+        <nav className="space-y-1">
+          <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Organization</p>
+          {ORGANIZATION_NAV.map((item) => (
+            <NavItem key={item.href} {...item} active={isActive(item.href, item.exact)} />
           ))}
         </nav>
         <nav className="space-y-1">
