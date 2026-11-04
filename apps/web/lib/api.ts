@@ -589,15 +589,31 @@ export interface FolderItem {
   id: string;
   name: string;
   color?: string;
+  parent_id?: string | null;
   meeting_count?: number;
+  created_at: string;
+}
+
+// Lightweight meeting shape returned by GET /folders/:id/meetings.
+export interface FolderMeeting {
+  id: string;
+  title: string;
+  status: string;
+  duration_seconds?: number;
   created_at: string;
 }
 
 export const foldersApi = {
   list: () => api.get<FolderItem[]>('/folders'),
-  create: (name: string, color?: string, organizationId?: string) =>
-    api.post<FolderItem>('/folders', { name, color, organizationId }),
+  // Server create reads { name, color, parentId } and persists parent_id, so
+  // sub-folders are created through this same call (parentId ?? undefined).
+  create: (name: string, color?: string, parentId?: string | null) =>
+    api.post<FolderItem>('/folders', { name, color, parentId: parentId ?? undefined }),
+  update: (id: string, data: { name?: string; color?: string }) =>
+    api.patch<FolderItem>(`/folders/${id}`, data),
   delete: (id: string) => api.delete<{ success: boolean }>('/folders/' + id),
+  listMeetings: (folderId: string) =>
+    api.get<FolderMeeting[]>(`/folders/${folderId}/meetings`),
   addMeeting: (folderId: string, meetingId: string) =>
     api.post<{ success: boolean }>(`/folders/${folderId}/meetings`, { meetingId }),
   removeMeeting: (folderId: string, meetingId: string) =>
@@ -609,6 +625,7 @@ export interface TagItem {
   name: string;
   color?: string;
   meeting_count?: number;
+  created_at?: string;
 }
 
 export const tagsApi = {
@@ -616,10 +633,13 @@ export const tagsApi = {
   create: (name: string, color?: string) =>
     api.post<TagItem>('/tags', { name, color }),
   delete: (id: string) => api.delete<{ success: boolean }>('/tags/' + id),
-  addMeeting: (tagId: string, meetingId: string) =>
-    api.post<{ success: boolean }>(`/tags/${tagId}/meetings`, { meetingId }),
-  removeMeeting: (tagId: string, meetingId: string) =>
-    api.delete<{ success: boolean }>(`/tags/${tagId}/meetings/${meetingId}`),
+  // Server route is POST /tags/meetings/:meetingId with a tagId (or new name) in the body.
+  addMeeting: (meetingId: string, tagId: string) =>
+    api.post<{ success: boolean }>(`/tags/meetings/${meetingId}`, { tagId }),
+  removeMeeting: (meetingId: string, tagId: string) =>
+    api.delete<{ success: boolean }>(`/tags/meetings/${meetingId}/${tagId}`),
+  getForMeeting: (meetingId: string) =>
+    api.get<TagItem[]>(`/tags/meetings/${meetingId}`),
 };
 
 export default api;
