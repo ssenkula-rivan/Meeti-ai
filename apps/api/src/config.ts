@@ -14,8 +14,19 @@ export const config = {
     database: process.env.DB_NAME || 'meeti',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || '',
-    max: 20,
-    idleTimeoutMillis: 30000,
+    // Pool sizing / resilience. All bounded so a saturated or slow database
+    // degrades with a clear error instead of piling up requests indefinitely.
+    max: parseInt(process.env.DB_POOL_MAX || '20', 10),
+    idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT_MS || '30000', 10),
+    // Give up acquiring/creating a connection after this rather than queueing
+    // forever when the pool is exhausted (fail fast, surface the outage).
+    connectionTimeoutMillis: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT_MS || '10000', 10),
+    // Keep TCP keep-alives on so an idle pooled client is not silently dropped
+    // by Caddy / a NAT gateway / Postgres' own idle timeout between uses.
+    keepAlive: process.env.DB_POOL_KEEP_ALIVE !== 'false',
+    // Per-statement ceiling so one runaway query can't pin a connection. Sent
+    // via `SET statement_timeout` on connect (not a pg pool option).
+    statementTimeoutMs: parseInt(process.env.DB_STATEMENT_TIMEOUT_MS || '30000', 10),
   },
   
   redis: {
@@ -24,6 +35,10 @@ export const config = {
     token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    // Native TCP/TLS endpoint (redis:// or rediss://) used by ioredis + BullMQ.
+    // Deliberately separate from the Upstash REST url above, which is HTTPS and
+    // incompatible with ioredis. Empty means fall back to in-process limits.
+    tlsUrl: process.env.REDIS_URL || process.env.REDIS_TLS_URL || '',
   },
   
   jwt: {
@@ -95,7 +110,21 @@ export const config = {
       // credential stuffing and brute force.
       authWindowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || '900000', 10),
       authMax: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '20', 10),
+      // Expensive or high-abuse surfaces each get their own named bucket so a
+      // strict limit never bleeds into general traffic. Windows are per hour.
+      uploadWindowMs: parseInt(process.env.UPLOAD_RATE_LIMIT_WINDOW_MS || '3600000', 10),
+      uploadMax: parseInt(process.env.UPLOAD_RATE_LIMIT_MAX || '30', 10),
+      meetingWindowMs: parseInt(process.env.MEETING_RATE_LIMIT_WINDOW_MS || '3600000', 10),
+      meetingMax: parseInt(process.env.MEETING_RATE_LIMIT_MAX || '60', 10),
+      exportWindowMs: parseInt(process.env.EXPORT_RATE_LIMIT_WINDOW_MS || '3600000', 10),
+      exportMax: parseInt(process.env.EXPORT_RATE_LIMIT_MAX || '20', 10),
     },
+  },
+
+  // Readiness probe budgets. A dependency check that blows its budget reports
+  // "not ready" instead of hanging the probe forever.
+  health: {
+    dbTimeoutMs: parseInt(process.env.HEALTH_DB_TIMEOUT_MS || '2000', 10),
   },
 
   plans: PLANS,

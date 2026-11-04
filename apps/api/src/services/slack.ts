@@ -1,8 +1,35 @@
 import axios from 'axios';
 import { Database } from '@meeti/database';
 import { config } from '../config';
+import {
+  retryAsync,
+  CircuitBreaker,
+  CircuitOpenError,
+  isRetryableHttpStatus,
+} from '../lib/resilience';
 
 const db = new Database(config.database);
+
+// Slack is an unreliable third-party dependency, and these were the only
+// outbound API calls still made without a timeout. Every call now carries a
+// bounded timeout, and the idempotent channel-directory read retries transient
+// failures with backoff behind a circuit breaker, so a persistently down Slack
+// fails fast (graceful degradation) instead of stacking hung requests. Message
+// sends are NOT retried: chat.postMessage is not idempotent, so a blind retry
+// risks duplicate notifications.
+const SLACK_TIMEOUT_MS = 8000;
+const slackBreaker = new CircuitBreaker({
+  failureThreshold: 5,
+  resetTimeoutMs: 30_000,
+  isFailure: (err: unknown) => {
+    const status = (err as any)?.response?.status;
+    // Explicit HTTP status: only 429/5xx are dependency failures.
+    if (typeof status === 'number') return status === 429 || status >= 500;
+    // No HTTP response: count it only if axios actually sent a request (a real
+    // network error / timeout), not our thrown ok:false or a client-side fault.
+    return Boolean((err as any)?.request);
+  },
+});
 
 export interface SlackMessage {
   text?: string;
@@ -127,10 +154,24 @@ export class SlackService implements ISlackService {
     const integration = await this.getIntegration(userId);
     if (!integration) throw new Error('Slack not connected');
 
-    const response = await axios.get('https://slack.com/api/conversations.list', {
-      headers: { Authorization: `Bearer ${integration.bot_token}` },
-      params: { types: 'public_channel,private_channel', limit: 200 },
-    });
+    const response = await retryAsync(
+      () =>
+        slackBreaker.execute(() =>
+          axios.get('https://slack.com/api/conversations.list', {
+            headers: { Authorization: `Bearer ${integration.bot_token}` },
+            params: { types: 'public_channel,private_channel', limit: 200 },
+            timeout: SLACK_TIMEOUT_MS,
+          })
+        ),
+      {
+        attempts: 3,
+        // Never retry while the breaker is open (that just burns backoff); only
+        // retry genuine transient statuses (network / 429 / 5xx).
+        retryOn: (err) =>
+          !(err instanceof CircuitOpenError) &&
+          isRetryableHttpStatus((err as any)?.response?.status),
+      }
+    );
 
     if (!response.data.ok) {
       throw new Error(`Slack API error: ${response.data.error}`);
@@ -216,6 +257,7 @@ export class SlackService implements ISlackService {
 
     const response = await axios.post('https://slack.com/api/chat.postMessage', message, {
       headers: { Authorization: `Bearer ${integration.bot_token}`, 'Content-Type': 'application/json' },
+      timeout: SLACK_TIMEOUT_MS,
     });
 
     if (!response.data.ok) {
@@ -253,6 +295,7 @@ export class SlackService implements ISlackService {
       ],
     }, {
       headers: { Authorization: `Bearer ${integration.bot_token}`, 'Content-Type': 'application/json' },
+      timeout: SLACK_TIMEOUT_MS,
     });
   }
 

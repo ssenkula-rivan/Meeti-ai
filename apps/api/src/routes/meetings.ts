@@ -12,6 +12,7 @@ import {
 import { config } from '../config';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/error-handler';
+import { rateLimit } from '../middleware/rate-limit';
 import { queueMeeting } from '../workers/process-meeting';
 import { emailService } from '../services/email';
 import { StorageService } from '../services/storage';
@@ -53,7 +54,19 @@ const updateMeetingSchema = z.object({
   meetingLink: z.string().trim().url('Enter a valid meeting link').optional().or(z.literal('')),
 });
 
-router.post('/', async (req: AuthRequest, res, next) => {
+router.post(
+  '/',
+  // Creating a meeting drives transcription + AI analysis, so it gets its own
+  // tighter per-hour budget. `authenticate` has already run, so this bucket is
+  // keyed per user; fails closed because the downstream work is costly.
+  rateLimit({
+    name: 'meeting.create',
+    windowMs: config.security.rateLimit.meetingWindowMs,
+    max: config.security.rateLimit.meetingMax,
+    message: 'You are creating meetings too quickly. Please try again later.',
+    failOpen: false,
+  }),
+  async (req: AuthRequest, res, next) => {
   try {
     const data = createMeetingSchema.parse(req.body);
     const meeting = await meetingRepo.create(req.userId!, {
