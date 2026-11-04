@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { meetingsApi, type Meeting } from '@/lib/api';
 import { Icon } from '@/components/dashboard';
 
-/* Calendar screen from the iMeet design. Rendered as a month grid plus a day
+/* Calendar screen from the Meeti design. Rendered as a month grid plus a day
    agenda, driven entirely by real meetings (their start or creation date). No
    fake data: days with no meetings are simply empty. */
 function ymd(d: Date) {

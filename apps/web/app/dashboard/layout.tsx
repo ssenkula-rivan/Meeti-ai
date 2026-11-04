@@ -6,7 +6,7 @@ import { authApi, type UserProfileResponse } from '@/lib/api';
 import { Sidebar, TopBar, Icon, ProfileProvider } from '@/components/dashboard';
 
 /* Shared shell for every dashboard page: persistent left sidebar plus top bar,
-   matching the iMeet design. Handles the auth redirect once so individual pages
+   matching the Meeti design. Handles the auth redirect once so individual pages
    do not need their own navbar. */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
