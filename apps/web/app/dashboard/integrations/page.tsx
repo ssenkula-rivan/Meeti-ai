@@ -194,12 +194,12 @@ export default function IntegrationsPage() {
   return (
     <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-blue-600 font-semibold tracking-wide uppercase">
-            <span>Ecosystem & Sync</span>
+          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-violet-600 dark:text-violet-300">
+            <span>Connected to your workday</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mt-1">Integrations Hub</h1>
-          <p className="text-slate-600 mt-1 max-w-2xl">
-            Seamlessly connect your communication tools, calendars, cloud storage, and video conferencing to automate notes and action item delivery.
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1">Integrations</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
+            Connect the tools you meet, store and share with, so Meeti can deliver notes and action items where your team already works.
           </p>
         </div>
 
@@ -223,7 +223,7 @@ export default function IntegrationsPage() {
 
         {loading ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mb-3" />
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-violet-600 border-t-transparent mb-3" />
             <p className="font-medium">Loading connected services...</p>
           </div>
         ) : (
@@ -232,7 +232,7 @@ export default function IntegrationsPage() {
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden">
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-2xl font-bold text-blue-600">
+                  <div className="w-12 h-12 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center text-2xl font-bold text-violet-600 dark:bg-violet-500/10 dark:border-violet-500/20 dark:text-violet-300">
                     G
                   </div>
                   <span
@@ -293,7 +293,7 @@ export default function IntegrationsPage() {
                 ) : (
                   <button
                     onClick={() => handleConnectGoogle('full')}
-                    className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-xs transition"
+                    className="w-full py-2.5 px-4 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold shadow-xs transition"
                   >
                     Connect Google Account
                   </button>
@@ -337,7 +337,7 @@ export default function IntegrationsPage() {
                       <select
                         value={selectedChannel}
                         onChange={(e) => setSelectedChannel(e.target.value)}
-                        className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+                        className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-violet-500"
                       >
                         <option value="">Select a channel...</option>
                         {slackChannels.map((c) => (
@@ -354,7 +354,7 @@ export default function IntegrationsPage() {
                           type="checkbox"
                           checked={notifyOnComplete}
                           onChange={(e) => setNotifyOnComplete(e.target.checked)}
-                          className="rounded text-blue-600 focus:ring-blue-500"
+                          className="rounded text-violet-600 focus:ring-violet-500"
                         />
                         Post summary automatically when meeting ends
                       </label>
@@ -363,7 +363,7 @@ export default function IntegrationsPage() {
                           type="checkbox"
                           checked={notifyOnActionItems}
                           onChange={(e) => setNotifyOnActionItems(e.target.checked)}
-                          className="rounded text-blue-600 focus:ring-blue-500"
+                          className="rounded text-violet-600 focus:ring-violet-500"
                         />
                         Post action item reminders to channel
                       </label>
