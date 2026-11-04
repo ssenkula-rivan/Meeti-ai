@@ -2,34 +2,42 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { organizationsApi } from '@/lib/api';
+import { Icon } from '@/components/dashboard';
+
+type Org = {
+  id: string;
+  name: string;
+  slug: string;
+  created_at?: string;
+};
 
 export default function OrganizationsPage() {
   const router = useRouter();
-  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<Org[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
   const [newOrgSlug, setNewOrgSlug] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<Org | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
-
     if (!token) {
       router.push('/login');
       return;
     }
-
     loadOrganizations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadOrganizations = async () => {
     try {
       const res = await organizationsApi.list();
-      setOrganizations(res.data || []);
+      setOrganizations((res.data || []) as Org[]);
     } catch (err) {
       console.error('Failed to load organizations:', err);
     } finally {
@@ -37,13 +45,16 @@ export default function OrganizationsPage() {
     }
   };
 
+  const suggestedSlug = (name: string) =>
+    name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setCreating(true);
 
-    if (!newOrgName.trim() || !newOrgSlug.trim()) {
-      setError('Name and slug are required');
+    if (!newOrgName.trim()) {
+      setError('Give your team a name.');
       setCreating(false);
       return;
     }
@@ -51,165 +62,209 @@ export default function OrganizationsPage() {
     try {
       const res = await organizationsApi.create({
         name: newOrgName.trim(),
-        slug: newOrgSlug.trim().toLowerCase().replace(/\s+/g, '-'),
+        slug: suggestedSlug(newOrgSlug || newOrgName),
       });
-      setOrganizations([...organizations, res.data]);
+      setOrganizations((prev) => [...prev, res.data as Org]);
       setShowCreateModal(false);
       setNewOrgName('');
       setNewOrgSlug('');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create organization');
+      setError(err.response?.data?.error || 'Could not create the team. Please try again.');
     } finally {
       setCreating(false);
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await organizationsApi.delete(confirmDelete.id);
+      setOrganizations((prev) => prev.filter((o) => o.id !== confirmDelete.id));
+      setConfirmDelete(null);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Could not delete the team.');
+      setConfirmDelete(null);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="text-gray-600 font-medium">Loading organizations...</div>
-      </div>
+      <main className="flex flex-1 items-center justify-center py-24">
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+      </main>
     );
   }
 
   return (
-    <div className="flex-1 bg-slate-50 dark:bg-slate-950">
-      <nav className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <Link href="/dashboard" className="text-gray-700 hover:text-gray-900 font-medium text-sm">
-              Back to Dashboard
-            </Link>
-            <h1 className="text-xl font-semibold">Teams & Organizations</h1>
-            <div className="w-32" />
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-6">
+    <main className="flex-1 px-6 py-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Your Teams</h2>
-            <p className="text-gray-600 mt-1">Manage your organizations and team members</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Manage / Team members</p>
+            <h1 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Your teams</h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Organizations group the people you meet with. You belong to {organizations.length}.
+            </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+            className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
           >
-            Create Team
+            <Icon.Plus className="h-4 w-4" /> Create team
           </button>
         </div>
 
         {organizations.length === 0 ? (
-          <div className="bg-white border rounded-xl p-12 text-center">
-            <div className="text-gray-400 text-5xl mb-4">[ ]</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No teams yet</h3>
-            <p className="text-gray-600 mb-4">Create your first team to collaborate with others</p>
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-300">
+              <Icon.Users className="h-6 w-6" />
+            </span>
+            <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">No teams yet</h2>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">
+              Create a team to keep your shared meetings and notes organized.
+            </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
             >
-              Create Your First Team
+              <Icon.Plus className="h-4 w-4" /> Create your first team
             </button>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {organizations.map((org) => (
-              <div key={org.id} className="bg-white border rounded-xl p-6 hover:shadow-md transition">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl font-bold text-gray-500">Org</span>
-                  </div>
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                    {org.slug}
+              <div
+                key={org.id}
+                className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-violet-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-violet-500/40"
+              >
+                <div className="flex items-start justify-between">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100 text-lg font-bold text-violet-700 dark:bg-violet-500/20 dark:text-violet-200">
+                    {(org.name || '?').charAt(0).toUpperCase()}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                    /{org.slug}
                   </span>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{org.name}</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Created {new Date(org.created_at).toLocaleDateString()}
+                <h3 className="mt-4 text-base font-semibold text-slate-900 dark:text-white">{org.name}</h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {org.created_at ? `Created ${new Date(org.created_at).toLocaleDateString()}` : 'Team'}
                 </p>
-                <div className="flex gap-2">
-                  <button className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-200">
-                    Manage
-                  </button>
-                  <button className="flex-1 bg-blue-50 text-blue-700 py-2 rounded-lg text-sm font-medium hover:bg-blue-100">
-                    Members
+                <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+                  <button
+                    onClick={() => setConfirmDelete(org)}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-red-50 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-500/10 dark:hover:text-red-300"
+                  >
+                    Delete
                   </button>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </main>
+
+        <p className="mt-6 text-xs text-slate-400">
+          Member invitations and shared folders are on our roadmap and aren’t available yet, so we don’t show
+          counts we can’t back with real data.
+        </p>
+      </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Create New Team</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Create a team</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                aria-label="Close"
               >
-                x
+                ✕
               </button>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded mb-4 text-sm">
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleCreate} className="mt-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Team Name
+                <label htmlFor="orgName" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Team name
                 </label>
                 <input
+                  id="orgName"
                   type="text"
                   value={newOrgName}
                   onChange={(e) => setNewOrgName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Engineering Team"
-                  required
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  placeholder="e.g. Design team"
+                  autoFocus
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Team Slug (URL-friendly)
+                <label htmlFor="orgSlug" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Short name <span className="text-slate-400">(optional)</span>
                 </label>
                 <input
+                  id="orgSlug"
                   type="text"
                   value={newOrgSlug}
                   onChange={(e) => setNewOrgSlug(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., engineering-team"
-                  required
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  placeholder={newOrgName ? suggestedSlug(newOrgName) : 'design-team'}
                 />
               </div>
-
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 font-medium"
+                  className="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+                  className="flex-1 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:opacity-60"
                 >
-                  {creating ? 'Creating...' : 'Create Team'}
+                  {creating ? 'Creating…' : 'Create team'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Delete “{confirmDelete.name}”?</h2>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              This removes the team. Meetings you recorded stay in your library. This can’t be undone.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+              >
+                {deleting ? 'Deleting…' : 'Delete team'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
   );
 }
