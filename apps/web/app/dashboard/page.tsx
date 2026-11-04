@@ -14,7 +14,6 @@ import {
 import {
   StatTile,
   ActivityChart,
-  AvatarStack,
   Icon,
   useDashboardProfile,
 } from '@/components/dashboard';
@@ -22,16 +21,6 @@ import {
 function sameDay(a: string | Date, b: Date) {
   const d = new Date(a);
   return d.getFullYear() === b.getFullYear() && d.getMonth() === b.getMonth() && d.getDate() === b.getDate();
-}
-
-function initialsOf(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join('')
-    .toUpperCase();
 }
 
 function summaryTone(status: Meeting['status']) {
@@ -91,26 +80,46 @@ export default function DashboardPage() {
 
   const stats = useMemo(() => {
     const now = new Date();
-    const totalMinutes = Math.round(meetings.reduce((a, m) => a + (m.duration_seconds || 0), 0) / 60);
-    const completed = meetings.filter((m) => m.status === 'completed').length;
-    const timeSaved = Math.round((totalMinutes * 0.6) / 6) / 10;
+    const inRange = (m: Meeting, from: Date, to: Date) => {
+      const t = new Date(m.created_at);
+      return t >= from && t < to;
+    };
+    const minutesOf = (arr: Meeting[]) =>
+      Math.round(arr.reduce((a, m) => a + (m.duration_seconds || 0), 0) / 60);
+    const completedOf = (arr: Meeting[]) => arr.filter((m) => m.status === 'completed').length;
+    const avgOf = (arr: Meeting[]) => (arr.length ? Math.round(minutesOf(arr) / arr.length) : 0);
+    const pct = (cur: number, prev: number) =>
+      prev > 0 ? `${cur >= prev ? '+' : ''}${(((cur - prev) / prev) * 100).toFixed(1)}%` : undefined;
 
     const startThis = new Date(now.getFullYear(), now.getMonth(), 1);
     const startPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const startNext = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const thisMonth = meetings.filter((m) => { const t = new Date(m.created_at); return t >= startThis && t < startNext; }).length;
-    const prevMonth = meetings.filter((m) => { const t = new Date(m.created_at); return t >= startPrev && t < startThis; }).length;
-    const delta = prevMonth > 0 ? `+${(((thisMonth - prevMonth) / prevMonth) * 100).toFixed(1)}%` : undefined;
+    const thisMonth = meetings.filter((m) => inRange(m, startThis, startNext));
+    const prevMonth = meetings.filter((m) => inRange(m, startPrev, startThis));
+
+    const totalMinutes = minutesOf(meetings);
+    const completed = completedOf(meetings);
+    const avgLength = avgOf(meetings);
+
+    // Real month-over-month change for each metric (undefined when there is no
+    // prior-month baseline to compare against).
+    const deltas = {
+      meetings: pct(thisMonth.length, prevMonth.length),
+      minutes: pct(minutesOf(thisMonth), minutesOf(prevMonth)),
+      summaries: pct(completedOf(thisMonth), completedOf(prevMonth)),
+      avg: pct(avgOf(thisMonth), avgOf(prevMonth)),
+    };
 
     const days: Date[] = [];
     for (let i = 6; i >= 0; i--) { const d = new Date(now); d.setDate(now.getDate() - i); days.push(d); }
     const labels = days.map((d) => `${d.toLocaleDateString(undefined, { weekday: 'short' })}, ${d.getDate()}`);
     const meetingsByDay = days.map((d) => meetings.filter((m) => sameDay(m.created_at, d)).length);
-    const minutesByDay = days.map((d) => Math.round(meetings.filter((m) => sameDay(m.created_at, d)).reduce((a, m) => a + (m.duration_seconds || 0), 0) / 60));
+    const minutesByDay = days.map((d) => minutesOf(meetings.filter((m) => sameDay(m.created_at, d))));
 
-    const monthLabel = `${now.toLocaleDateString(undefined, { month: 'short' })} 1 – ${now.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).split(' ').pop()}`;
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const monthLabel = `${now.toLocaleDateString(undefined, { month: 'short' })} 1 – ${lastDay}, ${now.getFullYear()}`;
 
-    return { totalMinutes, completed, timeSaved, delta, labels, meetingsByDay, minutesByDay, monthLabel };
+    return { totalMinutes, completed, avgLength, deltas, labels, meetingsByDay, minutesByDay, monthLabel };
   }, [meetings]);
 
   if (loading) {
@@ -151,10 +160,10 @@ export default function DashboardPage() {
 
           {/* Stat tiles */}
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatTile label="Total meetings" value={meetings.length} delta={stats.delta} tone="violet" icon={<Icon.Video className="h-5 w-5" />} spark={stats.meetingsByDay} />
-            <StatTile label="Transcription minutes" value={stats.totalMinutes.toLocaleString()} delta={stats.delta} tone="green" icon={<Icon.Check className="h-5 w-5" />} spark={stats.minutesByDay} />
-            <StatTile label="AI summaries" value={stats.completed} delta={stats.delta} tone="fuchsia" icon={<Icon.Sparkles className="h-5 w-5" />} spark={stats.meetingsByDay} />
-            <StatTile label="Time saved" value={stats.timeSaved} unit="hrs" delta={stats.delta} tone="blue" icon={<Icon.Clock className="h-5 w-5" />} spark={stats.minutesByDay} />
+            <StatTile label="Total meetings" value={meetings.length} delta={stats.deltas.meetings} tone="violet" icon={<Icon.Video className="h-5 w-5" />} spark={stats.meetingsByDay} />
+            <StatTile label="Transcription minutes" value={stats.totalMinutes.toLocaleString()} delta={stats.deltas.minutes} tone="green" icon={<Icon.Check className="h-5 w-5" />} spark={stats.minutesByDay} />
+            <StatTile label="AI summaries" value={stats.completed} delta={stats.deltas.summaries} tone="fuchsia" icon={<Icon.Sparkles className="h-5 w-5" />} spark={stats.meetingsByDay} />
+            <StatTile label="Avg meeting length" value={stats.avgLength} unit="min" delta={stats.deltas.avg} tone="blue" icon={<Icon.Clock className="h-5 w-5" />} spark={stats.minutesByDay} />
           </div>
 
           {/* Main + right rail */}
@@ -201,13 +210,12 @@ export default function DashboardPage() {
                         <th className="pb-3 font-medium">Meeting name</th>
                         <th className="pb-3 font-medium">Date and time</th>
                         <th className="pb-3 font-medium">Duration</th>
-                        <th className="pb-3 font-medium">Participants</th>
                         <th className="pb-3 font-medium">AI summary</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                       {recent.length === 0 ? (
-                        <tr><td colSpan={5} className="py-10 text-center text-slate-400">No meetings yet. Start a new meeting to generate notes.</td></tr>
+                        <tr><td colSpan={4} className="py-10 text-center text-slate-400">No meetings yet. Start a new meeting to generate notes.</td></tr>
                       ) : (
                         recent.map((m) => {
                           const tone = summaryTone(m.status);
@@ -225,7 +233,6 @@ export default function DashboardPage() {
                               </td>
                               <td className="py-3 text-slate-500 dark:text-slate-400">{new Date(m.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                               <td className="py-3 text-slate-500 dark:text-slate-400">{mins ? `${mins} min` : '--'}</td>
-                              <td className="py-3"><AvatarStack initials={initialsOf(m.title).split('')} /></td>
                               <td className="py-3">
                                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${tone.cls}`}>{tone.label}</span>
                               </td>
@@ -299,26 +306,10 @@ export default function DashboardPage() {
               </section>
 
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">Up next</h2>
-                  <span className="text-xs font-medium text-violet-600 dark:text-violet-300">Today</span>
-                </div>
-                {recent[0] ? (
-                  <div className="mt-4 flex items-start gap-3">
-                    <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
-                      <span className="text-[10px] font-semibold uppercase">{new Date(recent[0].created_at).toLocaleDateString(undefined, { month: 'short' })}</span>
-                      <span className="text-base font-bold leading-none">{new Date(recent[0].created_at).getDate()}</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-slate-900 dark:text-white">{recent[0].title}</p>
-                      <p className="text-xs text-slate-400">{new Date(recent[0].created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="mt-4 text-sm text-slate-400">No upcoming meetings scheduled.</p>
-                )}
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white">Up next</h2>
+                <p className="mt-4 text-sm text-slate-400">No upcoming meetings scheduled.</p>
                 <Link href="/dashboard/meetings/new" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700">
-                  <Icon.Video className="h-4 w-4" /> Join meeting
+                  <Icon.Calendar className="h-4 w-4" /> Schedule a meeting
                 </Link>
               </section>
 

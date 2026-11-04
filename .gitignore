@@ -25,3 +25,6 @@ COSTS-TO-PAY.md
 
 # Temporary Figma design captures dropped in repo root (browser subagent)
 /figma-*.png
+
+# Design reference exports (not app assets)
+/Meeti/

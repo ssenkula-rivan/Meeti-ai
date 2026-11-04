@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { actionItemsApi, type UserProfileResponse } from '@/lib/api';
 
-/* Presentational building blocks for the redesigned iMeet dashboard.
+/* Presentational building blocks for the redesigned Meeti dashboard.
    These follow the Figma layout: a persistent left sidebar, a top bar,
    stat tiles with sparklines, and a combined bar/line activity chart.
    Icons are inline SVG so no icon dependency is added to the project. */

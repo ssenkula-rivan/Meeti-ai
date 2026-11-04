@@ -50,7 +50,7 @@ module.exports = {
       },
       boxShadow: {
         card: '0 1px 2px 0 rgba(0,0,0,0.04), 0 1px 3px 0 rgba(0,0,0,0.06)',
-        glow: '0 8px 30px -8px rgba(10, 132, 255, 0.45)',
+        glow: '0 8px 30px -8px rgba(124, 58, 237, 0.45)',
       },
     },
   },

@@ -12,7 +12,7 @@ import {
 } from '@/lib/api';
 import { Icon } from '@/components/dashboard';
 
-/* AI assistant screen from the iMeet design. It surfaces real insight cards
+/* AI assistant screen from the Meeti design. It surfaces real insight cards
    derived from completed meetings: recent summaries, extracted decisions, and
    open action items. The ask box filters existing meetings on the client rather
    than pretending to run a model that is not wired up yet. */

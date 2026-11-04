@@ -15,7 +15,7 @@
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
 
-  --primary: 211 100% 44%;
+  --primary: 262 83% 58%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 210 40% 96%;
@@ -35,7 +35,7 @@
 
   --border: 214 32% 91%;
   --input: 214 32% 91%;
-  --ring: 211 100% 44%;
+  --ring: 262 83% 58%;
 }
 
 .dark {
@@ -47,7 +47,7 @@
   --card: 223 22% 11%;
   --card-foreground: 210 40% 96%;
 
-  --primary: 200 100% 55%;
+  --primary: 258 90% 66%;
   --primary-foreground: 224 40% 8%;
 
   --secondary: 222 18% 16%;
@@ -67,7 +67,7 @@
 
   --border: 221 16% 20%;
   --input: 221 16% 22%;
-  --ring: 200 100% 55%;
+  --ring: 258 90% 66%;
 }
 
 * {
