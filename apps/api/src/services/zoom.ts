@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Database, Queryable } from '@meeti/database';
 import { config } from '../config';
+import { decryptSecret, encryptSecret } from '../lib/crypto';
 
 const db: Queryable = new Database(config.database);
 
@@ -80,7 +81,7 @@ export class ZoomService implements IZoomService {
              updated_at = NOW()
          WHERE user_id = $1
          RETURNING *`,
-        [userId, data.zoomUserId, data.accountId, data.email, data.accessToken, data.refreshToken, expiresAt]
+        [userId, data.zoomUserId, data.accountId, data.email, encryptSecret(data.accessToken), encryptSecret(data.refreshToken), expiresAt]
       );
       return updated!;
     }
@@ -90,7 +91,7 @@ export class ZoomService implements IZoomService {
        (user_id, zoom_user_id, account_id, email, access_token, refresh_token, token_expires_at, active)
        VALUES ($1, $2, $3, $4, $5, $6, $7, true)
        RETURNING *`,
-      [userId, data.zoomUserId, data.accountId, data.email, data.accessToken, data.refreshToken, expiresAt]
+      [userId, data.zoomUserId, data.accountId, data.email, encryptSecret(data.accessToken), encryptSecret(data.refreshToken), expiresAt]
     );
     return created!;
   }
@@ -150,7 +151,7 @@ export class ZoomService implements IZoomService {
     try {
       const response = await axios.get('https://api.zoom.us/v2/users/me/recordings', {
         headers: {
-          Authorization: `Bearer ${integration.access_token}`,
+          Authorization: `Bearer ${decryptSecret(integration.access_token)}`,
         },
         params: {
           from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],

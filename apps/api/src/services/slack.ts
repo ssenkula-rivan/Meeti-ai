@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Database } from '@meeti/database';
 import { config } from '../config';
+import { decryptSecret, encryptSecret } from '../lib/crypto';
 import {
   retryAsync,
   CircuitBreaker,
@@ -128,7 +129,7 @@ export class SlackService implements ISlackService {
              active = true, updated_at = NOW()
          WHERE user_id = $1
          RETURNING *`,
-        [userId, data.teamId, data.teamName, data.botToken, data.botUserId,
+        [userId, data.teamId, data.teamName, encryptSecret(data.botToken), data.botUserId,
          data.webhookUrl, data.defaultChannelId, data.defaultChannelName]
       );
     }
@@ -138,7 +139,7 @@ export class SlackService implements ISlackService {
         default_channel_id, default_channel_name)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [userId, data.teamId, data.teamName, data.botToken, data.botUserId,
+      [userId, data.teamId, data.teamName, encryptSecret(data.botToken), data.botUserId,
        data.webhookUrl, data.defaultChannelId, data.defaultChannelName]
     );
   }
@@ -158,7 +159,7 @@ export class SlackService implements ISlackService {
       () =>
         slackBreaker.execute(() =>
           axios.get('https://slack.com/api/conversations.list', {
-            headers: { Authorization: `Bearer ${integration.bot_token}` },
+            headers: { Authorization: `Bearer ${decryptSecret(integration.bot_token)}` },
             params: { types: 'public_channel,private_channel', limit: 200 },
             timeout: SLACK_TIMEOUT_MS,
           })
@@ -256,7 +257,7 @@ export class SlackService implements ISlackService {
     };
 
     const response = await axios.post('https://slack.com/api/chat.postMessage', message, {
-      headers: { Authorization: `Bearer ${integration.bot_token}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${decryptSecret(integration.bot_token)}`, 'Content-Type': 'application/json' },
       timeout: SLACK_TIMEOUT_MS,
     });
 
@@ -294,7 +295,7 @@ export class SlackService implements ISlackService {
         },
       ],
     }, {
-      headers: { Authorization: `Bearer ${integration.bot_token}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${decryptSecret(integration.bot_token)}`, 'Content-Type': 'application/json' },
       timeout: SLACK_TIMEOUT_MS,
     });
   }
