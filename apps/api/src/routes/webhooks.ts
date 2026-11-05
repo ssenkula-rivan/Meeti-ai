@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/error-handler';
 import { webhookService, WEBHOOK_EVENTS, WebhookCryptoSigner } from '../services/webhook';
+import { validateOutboundUrl } from '../lib/url-guard';
 import { Database, Queryable } from '@meeti/database';
 import { config } from '../config';
 
@@ -42,10 +43,9 @@ router.post('/', async (req: AuthRequest, res, next) => {
       throw new AppError(400, `Invalid event types: ${invalidEvents.join(', ')}`);
     }
 
-    try {
-      new URL(url);
-    } catch {
-      throw new AppError(400, 'Invalid webhook URL');
+    const urlError = validateOutboundUrl(url);
+    if (urlError) {
+      throw new AppError(400, `Invalid webhook URL: ${urlError}`);
     }
 
     const secret = webhookSigner.generateSecret();
@@ -78,6 +78,13 @@ router.patch('/:id', async (req: AuthRequest, res, next) => {
       const invalidEvents = events.filter((e: string) => !(WEBHOOK_EVENTS as readonly string[]).includes(e));
       if (invalidEvents.length > 0) {
         throw new AppError(400, `Invalid event types: ${invalidEvents.join(', ')}`);
+      }
+    }
+
+    if (url) {
+      const urlError = validateOutboundUrl(url);
+      if (urlError) {
+        throw new AppError(400, `Invalid webhook URL: ${urlError}`);
       }
     }
 
