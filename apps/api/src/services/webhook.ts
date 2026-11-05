@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import axios from 'axios';
 import { Database } from '@meeti/database';
 import { config } from '../config';
+import { validateOutboundUrl } from '../lib/url-guard';
 
 const db = new Database(config.database);
 
@@ -71,11 +72,21 @@ export class WebhookService implements IWebhookService {
   }
 
   private async deliver(webhook: any, payload: WebhookPayload, attempt = 1) {
-    const body = JSON.stringify(payload);
+    const body = JSON.stringify(payload); // serialize once for sign + send
     const signature = this.signPayload(webhook.secret, body);
 
     let deliveryId: string | undefined;
     try {
+      // SSRF defense-in-depth: never issue an outbound request to an
+      // internal/reserved address, even for legacy rows or webhooks mutated
+      // directly in the database. Blocked deliveries accrue failure_count and
+      // are auto-disabled by the existing backoff logic (no request is made).
+      const urlError = validateOutboundUrl(webhook.url);
+      if (urlError) {
+        console.warn(`[webhook] blocked delivery to ${webhook.url} (webhook ${webhook.id}): ${urlError}`);
+        throw new Error(`SSRF blocked: ${urlError}`);
+      }
+
       const delivery = await db.queryOne(
         `INSERT INTO webhook_deliveries (webhook_id, event_type, payload, attempt_count, status)
          VALUES ($1, $2, $3, $4, 'pending')
