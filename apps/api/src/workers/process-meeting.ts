@@ -87,6 +87,16 @@ export async function processMeeting(meetingId: string): Promise<void> {
     const meeting = await meetingRepo.findById(meetingId);
     if (!meeting) throw new Error(`Meeting ${meetingId} not found`);
 
+    // Idempotency: a completed meeting must never be re-processed. A redelivery
+    // (duplicate enqueue, queue retry, manual requeue, or the no-Redis direct
+    // fallback) would otherwise re-run paid STT/LLM steps and append duplicate
+    // summaries / decisions / action items, which are INSERT-only. Failed
+    // meetings (status 'failed') remain eligible for re-processing.
+    if (meeting.status === 'completed') {
+      console.log(`Meeting ${meetingId} already completed; skipping duplicate processing`);
+      return;
+    }
+
     await meetingRepo.updateStatus(meetingId, 'processing');
 
     // Clear any previous failure reason before (re)processing.
@@ -361,7 +371,19 @@ export async function processMeeting(meetingId: string): Promise<void> {
 export async function queueMeeting(meetingId: string): Promise<void> {
   if (meetingQueue) {
     try {
-      await meetingQueue.add('process-meeting', { meetingId });
+      await meetingQueue.add(
+        'process-meeting',
+        { meetingId },
+        {
+          // Deterministic job id collapses duplicate/concurrent enqueues for the
+          // same meeting into a single job (e.g. a double-submitted import).
+          // Removing finished jobs keeps the id free so a legitimate later
+          // re-queue is not permanently blocked by a retained job id.
+          jobId: `meeting:${meetingId}`,
+          removeOnComplete: true,
+          removeOnFail: true,
+        }
+      );
       return;
     } catch (err) {
       console.warn('Failed to add job to queue, running directly:', err);
