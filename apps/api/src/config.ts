@@ -45,6 +45,13 @@ export const config = {
     secret: process.env.JWT_SECRET || 'change-this-secret',
     expiresIn: '7d',
   },
+
+  // At-rest encryption key for stored secrets (OAuth access/refresh tokens).
+  // Base64 of 32 random bytes. Generate:
+  //   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+  encryption: {
+    key: process.env.APP_ENCRYPTION_KEY || '',
+  },
   
   storage: {
     provider: process.env.STORAGE_PROVIDER || 's3',
@@ -134,4 +141,10 @@ export const config = {
 // otherwise anyone could forge JWTs and read other users' data.
 if (config.nodeEnv === 'production' && !process.env.JWT_SECRET) {
   throw new Error('FATAL: JWT_SECRET must be set in production. Refusing to start with the default signing key.');
+}
+
+// Fail closed: without an encryption key the OAuth store would hold plaintext
+// credentials, so production must provide APP_ENCRYPTION_KEY.
+if (config.nodeEnv === 'production' && !process.env.APP_ENCRYPTION_KEY) {
+  throw new Error('FATAL: APP_ENCRYPTION_KEY must be set in production so OAuth tokens are not stored in plaintext.');
 }

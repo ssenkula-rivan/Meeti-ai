@@ -12,6 +12,7 @@ import { config } from '../config';
 import { AppError } from '../middleware/error-handler';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import jwt from 'jsonwebtoken';
+import { encryptSecret } from '../lib/crypto';
 
 const router = Router();
 const db: Queryable = new Database(config.database);
@@ -94,6 +95,10 @@ router.post('/google/callback', async (req, res, next) => {
       'SELECT * FROM oauth_accounts WHERE provider = $1 AND provider_user_id = $2',
       ['google', googleId]
     );
+
+    // Encrypt OAuth tokens at rest before persisting (never store raw credentials).
+    tokens.access_token = encryptSecret(tokens.access_token) as string;
+    if (tokens.refresh_token) tokens.refresh_token = encryptSecret(tokens.refresh_token) as string;
 
     let user;
     let isNewUser = false;
@@ -205,6 +210,10 @@ router.post('/google/connect', authenticate, async (req: AuthRequest, res, next)
     if (existingOAuth && existingOAuth.user_id !== req.userId) {
       throw new AppError(400, 'This Google account is already linked to another user');
     }
+
+    // Encrypt OAuth tokens at rest before persisting (never store raw credentials).
+    tokens.access_token = encryptSecret(tokens.access_token) as string;
+    if (tokens.refresh_token) tokens.refresh_token = encryptSecret(tokens.refresh_token) as string;
 
     if (existingOAuth) {
       // Update existing OAuth account

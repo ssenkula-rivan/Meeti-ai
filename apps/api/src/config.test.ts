@@ -18,6 +18,7 @@ async function loadConfig() {
 describe('config security guards', () => {
   beforeEach(() => {
     delete process.env.JWT_SECRET;
+    delete process.env.APP_ENCRYPTION_KEY;
     delete process.env.ALLOWED_ORIGINS;
   });
   afterEach(() => {
@@ -30,12 +31,21 @@ describe('config security guards', () => {
     await expect(loadConfig()).rejects.toThrow(/JWT_SECRET must be set in production/);
   });
 
-  it('loads in production when a real JWT_SECRET is provided', async () => {
+  it('loads in production when a real JWT_SECRET and APP_ENCRYPTION_KEY are provided', async () => {
     process.env.NODE_ENV = 'production';
     process.env.JWT_SECRET = 'a-real-signing-secret';
+    process.env.APP_ENCRYPTION_KEY = 'm0X4VZVdVAoT6YEOyiZRSErg+9+ANakS8OIsU3la814=';
     const config = await loadConfig();
     expect(config.jwt.secret).toBe('a-real-signing-secret');
+    expect(config.encryption.key).toBe('m0X4VZVdVAoT6YEOyiZRSErg+9+ANakS8OIsU3la814=');
     expect(config.nodeEnv).toBe('production');
+  });
+
+  it('FAILS CLOSED in production when APP_ENCRYPTION_KEY is missing', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.JWT_SECRET = 'a-real-signing-secret';
+    delete process.env.APP_ENCRYPTION_KEY;
+    await expect(loadConfig()).rejects.toThrow(/APP_ENCRYPTION_KEY must be set in production/);
   });
 
   it('does not throw outside production even with the placeholder key', async () => {

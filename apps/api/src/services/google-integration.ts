@@ -2,6 +2,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
 import { Database } from '@meeti/database';
 import { config } from '../config';
+import { decryptSecret, encryptSecret } from '../lib/crypto';
 
 // --- Narrow ISP interfaces ---
 
@@ -86,8 +87,8 @@ export class GoogleIntegrationService implements IGoogleIntegrationService {
     );
 
     client.setCredentials({
-      access_token: oauthAccount.access_token,
-      refresh_token: oauthAccount.refresh_token,
+      access_token: decryptSecret(oauthAccount.access_token) as string,
+      refresh_token: decryptSecret(oauthAccount.refresh_token) as string,
     });
 
     // Check if token needs refresh
@@ -99,8 +100,8 @@ export class GoogleIntegrationService implements IGoogleIntegrationService {
            SET access_token = $1, refresh_token = COALESCE($2, refresh_token), expires_at = $3, updated_at = NOW()
            WHERE id = $4`,
           [
-            credentials.access_token,
-            credentials.refresh_token,
+            encryptSecret(credentials.access_token) as string,
+            encryptSecret(credentials.refresh_token),
             credentials.expiry_date ? new Date(credentials.expiry_date) : null,
             oauthAccount.id,
           ]
